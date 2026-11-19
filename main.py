@@ -1,5 +1,4 @@
-# Authors: Mauricio Arteaga
-# Kaléin Tamaríz
+# Author: Kaléin Tamaríz
 """
 Insurance Geospatial Intelligence Platform - Main Entry Point
 

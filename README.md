@@ -1,5 +1,4 @@
 # Insurance Geospatial Intelligence
-#### Authors: Kaléin Tamaríz
 
 [![Python](https://img.shields.io/badge/Python-v3.12+-3776AB.svg?style=plastic&logo=python)](https://www.python.org/)
 [![FASTAPI](https://img.shields.io/badge/Framework-FastAPI-009688.svg?style=plastic&logo=fastapi)](https://fastapi.tiangolo.com/)

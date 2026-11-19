@@ -1,5 +1,4 @@
-# Authors: Mauricio Arteaga
-# Kaléin Tamaríz
+# Author: Kaléin Tamaríz
 import os
 from pathlib import Path
 import yaml

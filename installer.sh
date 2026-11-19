@@ -1,6 +1,5 @@
 #!/bin/bash
-# Authors: Mauricio Arteaga
-# Kaléin Tamaríz
+# Author: Kaléin Tamaríz
 
 PACKAGE_NAME="insurance_platform"
 
