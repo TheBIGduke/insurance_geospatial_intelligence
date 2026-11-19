@@ -1,0 +1,18 @@
+# Core dependencies - exact versions from uv.lock
+geoalchemy2==0.21.0
+geopandas==1.2.0
+pandas==3.1.1
+psycopg2-binary==2.9.13
+requests==2.34.2
+sqlalchemy==2.1.9
+pyyaml==6.0.1
+colorlog==6.12.0
+
+# For running the server
+fastapi==0.165.0
+uvicorn==0.30.6
+
+# For development and code quality
+pre-commit==3.8.0
+black==24.4.0
+ruff==0.4.4

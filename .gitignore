@@ -1,0 +1,72 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+.claude/
+.impeccable/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+exports/*.geojson
+exports/*.csv
+exports/*.json
+!exports/style.css
+!exports/app.js
+!exports/index.html
+!exports/kepler_config.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Certificates
+certs/
+
+# Logs
+*.log
+logs/
+
+# UV
+uv.lock
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Temporary files
+*.tmp
+*.temp
+
+# App data directory (created by installer)
+~/.insurance_platform/
+
+# Data folder (unzipped from resources/data.zip by installer)
+data/
+
+# CSV data files (extracted from resources/data.zip by installer)
+resources/*.csv

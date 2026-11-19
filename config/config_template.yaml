@@ -1,0 +1,62 @@
+# Insurance Geospatial Intelligence Platform Configuration
+# Copy this file to ~/.insurance_platform/config/config.yaml and customize
+
+API:
+  version: "1.0.0"
+  host: "0.0.0.0"
+  port: 8080
+
+database:
+  host: "localhost"
+  port: 5432
+  name: "insurance_geospatial_intelligence"
+  user: "thebigduke"
+  password: "thebigduke"
+  # For connection pooling
+  pool_size: 5
+  max_overflow: 10
+  pool_timeout: 30
+  pool_recycle: 3600
+
+# Census API (optional - for ZIP-level demographics download)
+census:
+  api_key: ""
+  base_url: "https://api.census.gov/data/2023/acs/acs5"
+
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s-%(name)s-%(levelname)s-%(message)s"
+  datefmt: "%Y-%m-%d %H:%M:%S"
+
+# Data paths (relative to project root)
+data:
+  zcta_shapefile: "data/tl_2026_us_zcta520.zip"
+  crash_csv: "data/my_list.csv"
+  agents_csv: "data/agents_tdi_2026.csv"
+  census_csv: "data/ACSST1Y2025.S2504-2026-11-18T174206.csv"
+  roads_shapefile: "data/txdot_roads.shp"
+
+# Export settings
+export:
+  dir: "exports"
+  geojson_filename: "zip_opportunity_metrics.geojson"
+  csv_filename: "zip_opportunity_metrics.csv"
+  kepler_config_filename: "kepler_config.json"
+
+# Region constants (adjust for your target region)
+region:
+  state_fips: "48"
+  zcta_prefix: "48"
+  bbox: [-106.65, 25.84, -93.51, 36.50]  # min_lon, min_lat, max_lon, max_lat
+
+# CRS settings
+crs:
+  target: "EPSG:4326"  # WGS84 for web mapping
+
+# Pipeline settings
+pipeline:
+  chunk_size: 10000
+  skip_load: false
+  skip_sql: false
+  skip_export: false

@@ -1,0 +1,57 @@
+repos:
+  # Official pre-commit hooks for basic checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # Remove trailing whitespace from lines
+      - id: trailing-whitespace
+
+      # Ensure files end with a single newline
+      - id: end-of-file-fixer
+
+      # Validate YAML syntax
+      - id: check-yaml
+
+      # Prevent large files from being committed
+      - id: check-added-large-files
+        args: ["--maxkb=700"]
+
+      # Detect unresolved merge conflicts
+      - id: check-merge-conflict
+
+      # Normalize line endings (LF vs CRLF)
+      - id: mixed-line-ending
+
+  # Black formatter for Python
+  - repo: https://github.com/psf/black
+    rev: 24.4.0
+    hooks:
+      - id: black
+        language_version: python3.12
+
+  # Ruff linter for Python
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args:
+          [
+            "--fix",
+            "--line-length=100",
+            # Ignore specific rules
+            "--ignore=E203,E501,E402,F401"
+          ]
+
+# Exclude specific files/directories from all hooks
+exclude: >
+  (^\.venv/|
+  ^\.env$|
+  ^node_modules/|
+  ^static/|
+  ^exports/|
+  ^data/|
+  ^certs/|
+  ^\.gitignore$|
+  ^uv\.lock$|
+  ^requirements\.txt$|
+  ^README\.md$)

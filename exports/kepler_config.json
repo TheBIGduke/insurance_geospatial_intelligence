@@ -1,0 +1,458 @@
+{
+  "version": "v1",
+  "config": {
+    "visState": {
+      "filters": [
+        {
+          "id": "market_segment_filter",
+          "type": "multiSelect",
+          "dataId": "zip_opportunity_metrics",
+          "name": "Market Segment",
+          "column": "market_segment",
+          "domain": [],
+          "enlarged": false
+        },
+        {
+          "id": "opportunity_score_filter",
+          "type": "range",
+          "dataId": "zip_opportunity_metrics",
+          "name": "Overall Opportunity Score",
+          "column": "overall_opportunity_score",
+          "domain": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "standard_score_filter",
+          "type": "range",
+          "dataId": "zip_opportunity_metrics",
+          "name": "Standard Market Score",
+          "column": "standard_market_score",
+          "domain": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "nonstandard_score_filter",
+          "type": "range",
+          "dataId": "zip_opportunity_metrics",
+          "name": "Non-Standard Market Score",
+          "column": "non_standard_market_score",
+          "domain": [
+            0,
+            1
+          ]
+        }
+      ],
+      "layers": [
+        {
+          "id": "zip_choropleth",
+          "type": "geojson",
+          "config": {
+            "dataId": "zip_opportunity_metrics",
+            "label": "ZIP Opportunity Metrics",
+            "color": [
+              "overall_opportunity_score",
+              {
+                "type": "quantile",
+                "colors": [
+                  "#fee5d9",
+                  "#fcae91",
+                  "#fb6a4a",
+                  "#de2d26",
+                  "#a50f15"
+                ],
+                "size": 5
+              }
+            ],
+            "columns": {
+              "geojson": "geometry"
+            },
+            "isVisible": true,
+            "visConfig": {
+              "opacity": 0.8,
+              "thickness": 0.5,
+              "strokeColor": [
+                100,
+                100,
+                100
+              ],
+              "colorRange": {
+                "name": "Global Warming",
+                "type": "sequential",
+                "category": "Uber",
+                "colors": [
+                  "#5A1846",
+                  "#900C3F",
+                  "#C70039",
+                  "#E3611C",
+                  "#F1920E",
+                  "#FFC300"
+                ]
+              },
+              "strokeColorRange": {
+                "name": "Global Warming",
+                "type": "sequential",
+                "category": "Uber",
+                "colors": [
+                  "#5A1846",
+                  "#900C3F",
+                  "#C70039",
+                  "#E3611C",
+                  "#F1920E",
+                  "#FFC300"
+                ]
+              },
+              "radius": 10,
+              "sizeRange": [
+                0,
+                10
+              ],
+              "radiusRange": [
+                0,
+                50
+              ],
+              "heightRange": [
+                0,
+                500000
+              ],
+              "elevationScale": 5,
+              "stroked": true,
+              "filled": true,
+              "enable3d": true,
+              "wireframe": false
+            },
+            "hidden": false,
+            "textLabel": [
+              {
+                "field": "zip_code",
+                "color": [
+                  255,
+                  255,
+                  255
+                ],
+                "size": 12,
+                "offset": [
+                  0,
+                  0
+                ],
+                "anchor": "start",
+                "alignment": "center",
+                "background": true,
+                "backgroundColor": [
+                  0,
+                  0,
+                  0,
+                  128
+                ]
+              }
+            ]
+          },
+          "visualChannels": {
+            "colorField": {
+              "name": "overall_opportunity_score",
+              "type": "real"
+            },
+            "colorScale": "quantile"
+          }
+        },
+        {
+          "id": "competitors_point",
+          "type": "point",
+          "config": {
+            "dataId": "competitors",
+            "label": "Competitor Locations",
+            "color": [
+              255,
+              0,
+              0
+            ],
+            "columns": {
+              "lat": "latitude",
+              "lng": "longitude",
+              "altitude": null
+            },
+            "isVisible": true,
+            "visConfig": {
+              "radius": 50,
+              "fixedRadius": false,
+              "opacity": 0.8,
+              "outline": false,
+              "thickness": 1,
+              "strokeColor": null,
+              "colorRange": {
+                "name": "Global Warming",
+                "type": "sequential",
+                "category": "Uber"
+              },
+              "sizeRange": [
+                0,
+                10
+              ],
+              "radiusRange": [
+                0,
+                50
+              ],
+              "heightRange": [
+                0,
+                500000
+              ],
+              "elevationScale": 5,
+              "stroked": false,
+              "filled": true,
+              "enable3d": false
+            },
+            "hidden": false,
+            "textLabel": [
+              {
+                "field": "name",
+                "color": [
+                  0,
+                  0,
+                  0
+                ],
+                "size": 10,
+                "offset": [
+                  0,
+                  0
+                ],
+                "anchor": "start",
+                "alignment": "center",
+                "background": false
+              }
+            ]
+          },
+          "visualChannels": {
+            "colorField": {
+              "name": "agency_type",
+              "type": "string"
+            },
+            "colorScale": "ordinal"
+          }
+        },
+        {
+          "id": "crashes_heatmap",
+          "type": "heatmap",
+          "config": {
+            "dataId": "crashes",
+            "label": "Crash Density Heatmap",
+            "color": [
+              "crash_id",
+              {
+                "type": "quantile",
+                "colors": [
+                  "#fee5d9",
+                  "#fcae91",
+                  "#fb6a4a",
+                  "#de2d26",
+                  "#a50f15"
+                ],
+                "size": 5
+              }
+            ],
+            "columns": {
+              "lat": "latitude",
+              "lng": "longitude",
+              "altitude": null
+            },
+            "isVisible": true,
+            "visConfig": {
+              "opacity": 0.8,
+              "radiusPixels": 20,
+              "intensity": 1,
+              "threshold": 0.05,
+              "colorRange": {
+                "name": "Global Warming",
+                "type": "sequential",
+                "category": "Uber"
+              },
+              "sizeRange": [
+                0,
+                10
+              ],
+              "radiusRange": [
+                0,
+                50
+              ],
+              "heightRange": [
+                0,
+                500000
+              ],
+              "elevationScale": 5
+            },
+            "hidden": true,
+            "textLabel": []
+          },
+          "visualChannels": {
+            "colorField": {
+              "name": "crash_id",
+              "type": "real"
+            },
+            "colorScale": "quantile"
+          }
+        }
+      ],
+      "interactionConfig": {
+        "tooltip": {
+          "fieldsToShow": {
+            "zip_opportunity_metrics": [
+              {
+                "name": "zip_code",
+                "format": null
+              },
+              {
+                "name": "market_segment",
+                "format": null
+              },
+              {
+                "name": "overall_opportunity_score",
+                "format": ".3f"
+              },
+              {
+                "name": "standard_market_score",
+                "format": ".3f"
+              },
+              {
+                "name": "non_standard_market_score",
+                "format": ".3f"
+              },
+              {
+                "name": "vulnerability_index",
+                "format": ".3f"
+              },
+              {
+                "name": "visibility_multiplier",
+                "format": ".3f"
+              },
+              {
+                "name": "risk_alignment",
+                "format": ".3f"
+              },
+              {
+                "name": "median_home_value",
+                "format": "$,.0f"
+              },
+              {
+                "name": "median_household_income",
+                "format": "$,.0f"
+              },
+              {
+                "name": "vehicles_per_household",
+                "format": ".2f"
+              },
+              {
+                "name": "renter_pct",
+                "format": ".1f"
+              },
+              {
+                "name": "spanish_speaking_pct",
+                "format": ".1f"
+              },
+              {
+                "name": "total_competitors",
+                "format": null
+              },
+              {
+                "name": "franchise_competitors",
+                "format": null
+              },
+              {
+                "name": "independent_competitors",
+                "format": null
+              },
+              {
+                "name": "avg_aadt",
+                "format": ",.0f"
+              },
+              {
+                "name": "max_aadt",
+                "format": ",.0f"
+              },
+              {
+                "name": "total_crashes",
+                "format": null
+              }
+            ],
+            "competitors": [
+              {
+                "name": "name",
+                "format": null
+              },
+              {
+                "name": "agency_type",
+                "format": null
+              },
+              {
+                "name": "appointment_type",
+                "format": null
+              },
+              {
+                "name": "city",
+                "format": null
+              },
+              {
+                "name": "postal_code",
+                "format": null
+              }
+            ],
+            "crashes": [
+              {
+                "name": "crash_id",
+                "format": null
+              }
+            ]
+          },
+          "compareMode": false,
+          "compareType": "absolute",
+          "enabled": true
+        },
+        "brush": {
+          "size": 0.5,
+          "enabled": true
+        },
+        "geocoder": {
+          "enabled": true
+        },
+        "coordinate": {
+          "enabled": true
+        }
+      },
+      "layerBlending": "normal",
+      "splitMaps": [],
+      "animationConfig": {
+        "currentTime": null,
+        "speed": 1
+      }
+    },
+    "mapState": {
+      "bearing": 0,
+      "dragRotate": false,
+      "latitude": 31.0,
+      "longitude": -99.0,
+      "pitch": 45,
+      "zoom": 5.5,
+      "isSplit": false
+    },
+    "mapStyle": {
+      "styleType": "dark",
+      "topLayerGroups": {},
+      "visibleLayerGroups": {
+        "label": true,
+        "road": true,
+        "border": false,
+        "building": true,
+        "water": true,
+        "land": true,
+        "3d building": false
+      },
+      "threeDBuildingColor": [
+        9.665468314072013,
+        17.18305478057247,
+        31.1442867897876
+      ],
+      "mapStyles": {}
+    }
+  }
+}
