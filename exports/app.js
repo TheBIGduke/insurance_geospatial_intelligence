@@ -241,6 +241,7 @@ function initMap() {
             if (state.map) {
                 state.map.resize();
             }
+            updateScaleBar();
         });
 
         // Watch for panel toggle to resize map
@@ -251,7 +252,18 @@ function initMap() {
                     state.map.resize();
                 }
             });
-            observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
+            observer.observe(panel, { attributes: true, attributeFilter: ['class', 'style'] });
+        }
+
+        // Also observe panel width changes via ResizeObserver
+        if (panel && window.ResizeObserver) {
+            const resizeObserver = new ResizeObserver(() => {
+                if (state.map) {
+                    state.map.resize();
+                }
+                updateScaleBar();
+            });
+            resizeObserver.observe(panel);
         }
 
         state.map.on('load', () => {
@@ -598,10 +610,10 @@ function applyFilters() {
         if (p.standard_market_score < state.filters.minStd) return false;
         if (p.non_standard_market_score < state.filters.minNonStd) return false;
 
-        // Advanced filters
-        if (p.vulnerability_index > state.filters.maxVuln) return false;
-        if (p.visibility_multiplier < state.filters.minVis) return false;
-        if (p.risk_alignment > state.filters.maxRisk) return false;
+        // Advanced filters - handle missing/null data gracefully
+        if (p.vulnerability_index !== undefined && p.vulnerability_index !== null && p.vulnerability_index > state.filters.maxVuln) return false;
+        if (p.visibility_multiplier !== undefined && p.visibility_multiplier !== null && p.visibility_multiplier < state.filters.minVis) return false;
+        if (p.risk_alignment !== undefined && p.risk_alignment !== null && p.risk_alignment > state.filters.maxRisk) return false;
 
         return true;
     });
@@ -807,9 +819,9 @@ function updateStats(filteredCount = null) {
             if (p.overall_opportunity_score < state.filters.minOpp) return false;
             if (p.standard_market_score < state.filters.minStd) return false;
             if (p.non_standard_market_score < state.filters.minNonStd) return false;
-            if (p.vulnerability_index > state.filters.maxVuln) return false;
-            if (p.visibility_multiplier < state.filters.minVis) return false;
-            if (p.risk_alignment > state.filters.maxRisk) return false;
+            if (p.vulnerability_index !== undefined && p.vulnerability_index !== null && p.vulnerability_index > state.filters.maxVuln) return false;
+            if (p.visibility_multiplier !== undefined && p.visibility_multiplier !== null && p.visibility_multiplier < state.filters.minVis) return false;
+            if (p.risk_alignment !== undefined && p.risk_alignment !== null && p.risk_alignment > state.filters.maxRisk) return false;
             return true;
         })
         : state.geojsonData.features;
@@ -973,10 +985,11 @@ function bindEvents() {
         el.parentElement?.querySelectorAll('.threshold').forEach(th => {
             th.addEventListener('click', () => {
                 const targetVal = parseFloat(th.dataset.value) / 100;
-                const setVal = config.reverse ? 1 - targetVal : targetVal;
-                el.value = (config.reverse ? 1 - targetVal : targetVal) * 100;
-                state.filters[config.key] = targetVal;
-                valueEl.textContent = Math.round(targetVal * 100) + '%';
+                const internalVal = config.reverse ? 1 - targetVal : targetVal;
+                const displayVal = config.reverse ? 1 - targetVal : targetVal;
+                el.value = displayVal * 100;
+                state.filters[config.key] = internalVal;
+                valueEl.textContent = Math.round(displayVal * 100) + '%';
                 // Clear any pending debounce and apply immediately
                 if (state.filterTimers.main) {
                     clearTimeout(state.filterTimers.main);
@@ -1010,7 +1023,7 @@ function bindEvents() {
         els.legendToggle.querySelector('svg').style.transform = state.ui.legendCollapsed ? 'rotate(-90deg)' : 'rotate(0)';
     });
 
-    // Reset button
+    // Reset button (in panel header)
     els.resetBtn?.addEventListener('click', resetFilters);
 
     // Help modal with focus management
@@ -1072,19 +1085,23 @@ function resetFilters() {
     els.segmentFilter.value = '';
 
     const sliders = [
-        { id: 'oppScoreFilter', val: 0 },
-        { id: 'stdScoreFilter', val: 0 },
-        { id: 'nonStdScoreFilter', val: 0 },
-        { id: 'vulnScoreFilter', val: 100 },
-        { id: 'visScoreFilter', val: 0 },
-        { id: 'riskScoreFilter', val: 100 }
+        { id: 'oppScoreFilter', val: 0, reverse: false },
+        { id: 'stdScoreFilter', val: 0, reverse: false },
+        { id: 'nonStdScoreFilter', val: 0, reverse: false },
+        { id: 'vulnScoreFilter', val: 0, reverse: true },
+        { id: 'visScoreFilter', val: 0, reverse: false },
+        { id: 'riskScoreFilter', val: 0, reverse: true }
     ];
 
-    sliders.forEach(({ id, val }) => {
+    sliders.forEach(({ id, val, reverse }) => {
         const el = document.getElementById(id);
         const valueEl = document.getElementById(id.replace('Filter', 'Value'));
         if (el) el.value = val;
-        if (valueEl) valueEl.textContent = val + '%';
+        if (valueEl) {
+            // For reverse filters, display is (1 - val) * 100%
+            const displayVal = reverse ? Math.round((1 - val / 100) * 100) : val;
+            valueEl.textContent = displayVal + '%';
+        }
     });
 
     applyFilters();
@@ -1263,6 +1280,12 @@ function activateWorkflowStep(stepNum) {
         const isActive = step.dataset.step === stepNum;
         step.classList.toggle('active', isActive);
         step.setAttribute('aria-selected', isActive);
+    });
+
+    // Toggle visibility of workflow step sections
+    document.querySelectorAll('.workflow-step-section').forEach(section => {
+        const isActive = section.dataset.stepSection === stepNum;
+        section.classList.toggle('active', isActive);
     });
 }
 

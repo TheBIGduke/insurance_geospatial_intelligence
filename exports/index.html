@@ -30,13 +30,6 @@
                         </svg>
                         <span>Help</span>
                     </button>
-                    <button class="btn btn-primary" id="resetBtn" aria-label="Reset all filters">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                            <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 16"/>
-                        </svg>
-                        <span>Reset Filters</span>
-                    </button>
                 </div>
             </div>
         </header>
@@ -55,7 +48,7 @@
             <!-- Map Legend (Bottom Left) -->
             <aside class="map-legend" id="mapLegend" aria-label="Color legend">
                 <div class="legend-header">
-                    <h2>What the Colors Mean</h2>
+                    <h2>Opportunity Score Legend</h2>
                     <button class="legend-toggle" id="legendToggle" aria-expanded="true" aria-controls="legendGradient" title="Collapse legend">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 15l-6-6-6 6"/>
@@ -96,11 +89,20 @@
         <aside class="side-panel" id="sidePanel" role="complementary" aria-label="Filters and details">
             <div class="panel-header">
                 <h2>Find Your Best Locations</h2>
-                <button class="panel-toggle" id="panelToggle" aria-expanded="true" aria-controls="panelContent" title="Toggle panel">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M15 18l-6-6 6-6"/>
-                    </svg>
-                </button>
+                <div class="panel-header-actions">
+                    <button class="btn btn-ghost btn-sm" id="resetBtn" aria-label="Reset all filters">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 16"/>
+                        </svg>
+                        <span>Reset Filters</span>
+                    </button>
+                    <button class="panel-toggle" id="panelToggle" aria-expanded="true" aria-controls="panelContent" title="Toggle panel">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 18l-6-6 6-6"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <div class="panel-content" id="panelContent">
                 <!-- Guided Workflow -->
@@ -122,7 +124,7 @@
                 </section>
 
                 <!-- Market Segment Filter -->
-                <section class="filter-section">
+                <section class="filter-section workflow-step-section" data-step-section="1">
                     <header class="filter-header">
                         <label for="segmentFilter" class="filter-label">What type of business are you?</label>
                         <button class="filter-help" data-tooltip="Standard = preferred carriers (Geico, State Farm style). Non-standard = specialty/high-risk carriers. Spanish = bilingual markets." aria-label="Explain market types">
@@ -139,7 +141,7 @@
                 </section>
 
                 <!-- Score Filters -->
-                <section class="filter-section">
+                <section class="filter-section workflow-step-section" data-step-section="2">
                     <header class="filter-header">
                         <label class="filter-label">Minimum Quality Scores</label>
                         <span class="filter-badge" id="activeFiltersCount">No filters active</span>
@@ -153,8 +155,9 @@
                         <input type="range" id="oppScoreFilter" min="0" max="100" step="1" value="0"
                                class="score-slider" aria-label="Minimum overall opportunity score (0-100%)">
                         <div class="score-thresholds">
-                            <button class="threshold threshold-low" data-value="33" type="button">Good (33%)</button>
-                            <button class="threshold threshold-med" data-value="66" type="button">Great (66%)</button>
+                            <button class="threshold threshold-low" data-value="45" type="button">Above avg (45%)</button>
+                            <button class="threshold threshold-med" data-value="55" type="button">High (55%)</button>
+                            <button class="threshold threshold-high" data-value="65" type="button">Top tier (65%)</button>
                         </div>
                     </div>
 
@@ -166,8 +169,9 @@
                         <input type="range" id="stdScoreFilter" min="0" max="100" step="1" value="0"
                                class="score-slider" aria-label="Minimum standard market score (0-100%)">
                         <div class="score-thresholds">
-                            <button class="threshold threshold-low" data-value="33" type="button">Good (33%)</button>
-                            <button class="threshold threshold-med" data-value="66" type="button">Great (66%)</button>
+                            <button class="threshold threshold-low" data-value="40" type="button">Good (40%)</button>
+                            <button class="threshold threshold-med" data-value="55" type="button">Strong (55%)</button>
+                            <button class="threshold threshold-high" data-value="70" type="button">Prime (70%)</button>
                         </div>
                     </div>
 
@@ -179,8 +183,9 @@
                         <input type="range" id="nonStdScoreFilter" min="0" max="100" step="1" value="0"
                                class="score-slider" aria-label="Minimum non-standard market score (0-100%)">
                         <div class="score-thresholds">
-                            <button class="threshold threshold-low" data-value="33" type="button">Good (33%)</button>
-                            <button class="threshold threshold-med" data-value="66" type="button">Great (66%)</button>
+                            <button class="threshold threshold-low" data-value="40" type="button">Good (40%)</button>
+                            <button class="threshold threshold-med" data-value="55" type="button">Strong (55%)</button>
+                            <button class="threshold threshold-high" data-value="70" type="button">Prime (70%)</button>
                         </div>
                     </div>
                 </section>
@@ -199,13 +204,14 @@
                         <div class="score-filter" data-tooltip="How many competitors per square mile. Lower = less competition = easier to enter.">
                             <div class="score-filter-header">
                                 <span class="score-name">Competition Level (lower is better)</span>
-                                <span class="score-value" id="vulnScoreValue">100%</span>
+                                <span class="score-value" id="vulnScoreValue">0%</span>
                             </div>
-                            <input type="range" id="vulnScoreFilter" min="0" max="100" step="1" value="100"
+                            <input type="range" id="vulnScoreFilter" min="0" max="100" step="1" value="0"
                                    class="score-slider" aria-label="Maximum competition level (0-100%)">
                             <div class="score-thresholds">
-                                <button class="threshold threshold-low" data-value="33" type="button">Low competition</button>
-                                <button class="threshold threshold-med" data-value="66" type="button">Moderate</button>
+                                <button class="threshold threshold-low" data-value="75" type="button">Low competition</button>
+                                <button class="threshold threshold-med" data-value="50" type="button">Moderate</button>
+                                <button class="threshold threshold-high" data-value="25" type="button">High competition</button>
                             </div>
                         </div>
 
@@ -217,28 +223,30 @@
                             <input type="range" id="visScoreFilter" min="0" max="100" step="1" value="0"
                                    class="score-slider" aria-label="Minimum traffic visibility (0-100%)">
                             <div class="score-thresholds">
-                                <button class="threshold threshold-low" data-value="33" type="button">Good (33%)</button>
-                                <button class="threshold threshold-med" data-value="66" type="button">Great (66%)</button>
+                                <button class="threshold threshold-low" data-value="25" type="button">Low (25%)</button>
+                                <button class="threshold threshold-med" data-value="50" type="button">Medium (50%)</button>
+                                <button class="threshold threshold-high" data-value="75" type="button">High (75%)</button>
                             </div>
                         </div>
 
                         <div class="score-filter" data-tooltip="Crash density per area. Lower = safer = fewer claims.">
                             <div class="score-filter-header">
                                 <span class="score-name">Safety Score (lower crashes = better)</span>
-                                <span class="score-value" id="riskScoreValue">100%</span>
+                                <span class="score-value" id="riskScoreValue">0%</span>
                             </div>
-                            <input type="range" id="riskScoreFilter" min="0" max="100" step="1" value="100"
+                            <input type="range" id="riskScoreFilter" min="0" max="100" step="1" value="0"
                                    class="score-slider" aria-label="Maximum crash risk (0-100%)">
                             <div class="score-thresholds">
-                                <button class="threshold threshold-low" data-value="33" type="button">Safe areas</button>
-                                <button class="threshold threshold-med" data-value="66" type="button">Moderate</button>
+                                <button class="threshold threshold-low" data-value="75" type="button">Very safe</button>
+                                <button class="threshold threshold-med" data-value="50" type="button">Moderate</button>
+                                <button class="threshold threshold-high" data-value="25" type="button">Higher risk</button>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 <!-- ZIP Detail Panel -->
-                <section class="detail-section" id="detailSection">
+                <section class="detail-section workflow-step-section" id="detailSection" data-step-section="3">
                     <header class="detail-header">
                         <h3>Selected ZIP Code Details</h3>
                         <button class="btn btn-ghost btn-sm" id="copyBtn" aria-label="Copy ZIP data" hidden>
@@ -262,7 +270,7 @@
                 </section>
 
                 <!-- Stats Summary -->
-                <section class="stats-section" aria-label="Summary statistics">
+                <section class="stats-section workflow-step-section" data-step-section="3" aria-label="Summary statistics">
                     <div class="stat-cards" id="statCards">
                         <div class="stat-card">
                             <span class="stat-value" id="statTotalZips">—</span>
