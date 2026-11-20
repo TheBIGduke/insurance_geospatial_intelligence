@@ -48,19 +48,23 @@
             <!-- Map Legend (Bottom Left) -->
             <aside class="map-legend" id="mapLegend" aria-label="Color legend">
                 <div class="legend-header">
-                    <h2>Opportunity Score Legend</h2>
-                    <button class="legend-toggle" id="legendToggle" aria-expanded="true" aria-controls="legendGradient" title="Collapse legend">
+                    <h2>Market Segments</h2>
+                    <button class="legend-toggle" id="legendToggle" aria-expanded="true" aria-controls="legendSegments" title="Collapse legend">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 15l-6-6-6 6"/>
                         </svg>
                     </button>
                 </div>
-                <div class="legend-gradient" id="legendGradient">
-                    <div class="legend-bar" aria-hidden="true"></div>
-                    <div class="legend-labels">
-                        <span>Low Opportunity</span>
+                <div class="legend-height" id="legendHeight">
+                    <div class="height-indicator" aria-hidden="true">
+                        <div class="height-bar height-low"></div>
+                        <div class="height-bar height-med"></div>
+                        <div class="height-bar height-high"></div>
+                    </div>
+                    <div class="height-labels">
+                        <span>Low</span>
                         <span>Medium</span>
-                        <span>High Opportunity</span>
+                        <span>High</span>
                     </div>
                     <p class="legend-explanation">Height = Opportunity Score. Taller = Better.</p>
                 </div>
@@ -318,22 +322,55 @@
                                 <path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
                             </svg>
                         </div>
-                        <h3>Color = Opportunity Score</h3>
+                        <h3>Color = Market Type, Height = Opportunity</h3>
                         <div class="onboarding-legend">
-                            <div class="legend-row">
-                                <span class="legend-color legend-color--low"></span>
-                                <span>Low opportunity — fewer customers, more competition</span>
+                            <p class="onboarding-note" style="margin-bottom: var(--space-3); font-size: var(--fs-sm);">
+                                Each ZIP is colored by its <strong>market segment</strong> and sized by <strong>opportunity score</strong>.
+                            </p>
+                            <div class="height-indicator" style="margin-bottom: var(--space-3);">
+                                <div class="height-bar height-low" style="height: 20%;"></div>
+                                <div class="height-bar height-med" style="height: 50%;"></div>
+                                <div class="height-bar height-high" style="height: 85%;"></div>
+                            </div>
+                            <div class="height-labels" style="margin-bottom: var(--space-4);">
+                                <span>Low</span>
+                                <span>Medium</span>
+                                <span>High</span>
                             </div>
                             <div class="legend-row">
-                                <span class="legend-color legend-color--med"></span>
-                                <span>Medium — balanced market</span>
+                                <span class="legend-color" style="background: #2563eb;"></span>
+                                <span>Prime Standard</span>
                             </div>
                             <div class="legend-row">
-                                <span class="legend-color legend-color--high"></span>
-                                <span>High opportunity — strong demand, less competition</span>
+                                <span class="legend-color" style="background: #16a34a;"></span>
+                                <span>Strong Standard</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-color" style="background: #d97706;"></span>
+                                <span>Prime Non-Standard</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-color" style="background: #9333ea;"></span>
+                                <span>Strong Non-Standard</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-color" style="background: #db2777;"></span>
+                                <span>Spanish Standard</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-color" style="background: #ec4899;"></span>
+                                <span>Spanish Non-Standard</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-color" style="background: #dc2626;"></span>
+                                <span>Market Gap</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-color" style="background: #64748b;"></span>
+                                <span>Moderate</span>
                             </div>
                         </div>
-                        <p class="onboarding-note">Height also shows score — taller ZIPs = better opportunity. Colors go from dark blue (low) through green to gold (high).</p>
+                        <p class="onboarding-note">Height shows opportunity score — taller ZIPs = better opportunity (34%–69%).</p>
                         <div class="onboarding-nav">
                             <button class="btn btn-ghost" data-prev="1">← Back</button>
                             <button class="btn btn-primary" data-next="3">Next →</button>

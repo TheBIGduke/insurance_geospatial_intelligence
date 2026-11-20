@@ -49,10 +49,11 @@ const CONFIG = {
     ],
     // Extrusion heights (meters)
     // min: 100m base height so all ZIPs visible at state zoom
-    // max: 150km so highest-scoring ZIP (0.69) is clearly tallest
+    // max: 200km so highest-scoring ZIP (0.69) is clearly tallest
+    // Using exponential interpolation (factor 1.5) for more pronounced height differences
     EXTRUSION: {
-        min: 100,
-        max: 150000,
+        min: 200,
+        max: 200000,
         base: 0
     },
     // Scale bar thresholds (meters) - standard imperial breaks
@@ -375,20 +376,30 @@ function addMapLayers() {
         promoteId: 'zip_code'
     });
 
-    // Choropleth fill-extrusion layer
+    // Build segment color match expression
+function buildSegmentColorExpression() {
+    const expr = ['match', ['get', 'market_segment']];
+    Object.entries(CONFIG.SEGMENTS).forEach(([key, seg]) => {
+        expr.push(key, seg.color);
+    });
+    expr.push('#64748b'); // default fallback
+    return expr;
+}
+
+// Choropleth fill-extrusion layer - colored by market segment, height by opportunity
     state.map.addLayer({
         id: 'zip-layer',
         type: 'fill-extrusion',
         source: 'zip-data',
         paint: {
-            'fill-extrusion-color': buildColorInterpolation(),
+            'fill-extrusion-color': buildSegmentColorExpression(),
             'fill-extrusion-height': [
-                'interpolate', ['linear'], ['get', 'overall_opportunity_score'],
-                0, CONFIG.EXTRUSION.min,
-                1, CONFIG.EXTRUSION.max
+                'interpolate', ['exponential', 1.5], ['get', 'overall_opportunity_score'],
+                0.34, CONFIG.EXTRUSION.min,
+                0.69, CONFIG.EXTRUSION.max
             ],
             'fill-extrusion-base': CONFIG.EXTRUSION.base,
-            'fill-extrusion-opacity': 0.75
+            'fill-extrusion-opacity': 0.85
         }
     });
 
@@ -423,12 +434,22 @@ function addMapLayers() {
     });
 }
 
-// Build color interpolation expression
+// Build color interpolation expression (kept for reference/other uses)
 function buildColorInterpolation() {
     const expr = ['interpolate', ['linear'], ['get', 'overall_opportunity_score']];
     CONFIG.OPPORTUNITY_COLORS.forEach(([stop, color]) => {
         expr.push(stop, color);
     });
+    return expr;
+}
+
+// Build segment color match expression for map layer
+function buildSegmentColorExpression() {
+    const expr = ['match', ['get', 'market_segment']];
+    Object.entries(CONFIG.SEGMENTS).forEach(([key, seg]) => {
+        expr.push(key, seg.color);
+    });
+    expr.push('#64748b'); // default fallback
     return expr;
 }
 
@@ -677,7 +698,17 @@ function populateLegendSegments() {
     Object.entries(CONFIG.SEGMENTS).forEach(([key, seg]) => {
         const item = document.createElement('div');
         item.className = 'legend-segment';
+
+        let patternHtml = '';
+        if (seg.pattern && seg.pattern !== 'none') {
+            const patternDataUri = generatePatternSvg(seg.pattern, seg.color);
+            if (patternDataUri) {
+                patternHtml = `<span class="legend-pattern" style="background-image: url(${patternDataUri}); background-size: 16px 16px; width: 16px; height: 16px; border-radius: var(--radius-sm); display: inline-block; margin-right: var(--space-2);"></span>`;
+            }
+        }
+
         item.innerHTML = `
+            ${patternHtml}
             <span class="legend-segment-dot" style="background: ${seg.color};"></span>
             <span title="${seg.desc}">${seg.label}</span>
         `;
