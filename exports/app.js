@@ -104,16 +104,12 @@ let state = {
         segment: '',
         minOpp: 0,
         minStd: 0,
-        minNonStd: 0,
-        maxVuln: 1,
-        minVis: 0,
-        maxRisk: 1
+        minNonStd: 0
     },
     selectedZip: null,
     ui: {
         panelCollapsed: false,
-        legendCollapsed: false,
-        advancedOpen: false
+        legendCollapsed: false
     },
     // Modal focus management
     modal: {
@@ -631,11 +627,6 @@ function applyFilters() {
         if (p.standard_market_score < state.filters.minStd) return false;
         if (p.non_standard_market_score < state.filters.minNonStd) return false;
 
-        // Advanced filters - handle missing/null data gracefully
-        if (p.vulnerability_index !== undefined && p.vulnerability_index !== null && p.vulnerability_index > state.filters.maxVuln) return false;
-        if (p.visibility_multiplier !== undefined && p.visibility_multiplier !== null && p.visibility_multiplier < state.filters.minVis) return false;
-        if (p.risk_alignment !== undefined && p.risk_alignment !== null && p.risk_alignment > state.filters.maxRisk) return false;
-
         return true;
     });
 
@@ -850,9 +841,6 @@ function updateStats(filteredCount = null) {
             if (p.overall_opportunity_score < state.filters.minOpp) return false;
             if (p.standard_market_score < state.filters.minStd) return false;
             if (p.non_standard_market_score < state.filters.minNonStd) return false;
-            if (p.vulnerability_index !== undefined && p.vulnerability_index !== null && p.vulnerability_index > state.filters.maxVuln) return false;
-            if (p.visibility_multiplier !== undefined && p.visibility_multiplier !== null && p.visibility_multiplier < state.filters.minVis) return false;
-            if (p.risk_alignment !== undefined && p.risk_alignment !== null && p.risk_alignment > state.filters.maxRisk) return false;
             return true;
         })
         : state.geojsonData.features;
@@ -873,9 +861,6 @@ function updateActiveFiltersCount() {
     if (state.filters.minOpp > 0) count++;
     if (state.filters.minStd > 0) count++;
     if (state.filters.minNonStd > 0) count++;
-    if (state.filters.maxVuln < 1) count++;
-    if (state.filters.minVis > 0) count++;
-    if (state.filters.maxRisk < 1) count++;
 
     els.activeFiltersCount.textContent = count > 0 ? `${count} filter${count > 1 ? 's' : ''} active` : 'No filters active';
     els.activeFiltersCount.style.color = count > 0 ? 'var(--accent-gold)' : 'var(--text-muted)';
@@ -993,10 +978,7 @@ function bindEvents() {
     const sliderMap = {
         oppScoreFilter: { key: 'minOpp', valueEl: 'oppScoreValue' },
         stdScoreFilter: { key: 'minStd', valueEl: 'stdScoreValue' },
-        nonStdScoreFilter: { key: 'minNonStd', valueEl: 'nonStdScoreValue' },
-        vulnScoreFilter: { key: 'maxVuln', valueEl: 'vulnScoreValue', reverse: true },
-        visScoreFilter: { key: 'minVis', valueEl: 'visScoreValue' },
-        riskScoreFilter: { key: 'maxRisk', valueEl: 'riskScoreValue', reverse: true }
+        nonStdScoreFilter: { key: 'minNonStd', valueEl: 'nonStdScoreValue' }
     };
 
     Object.entries(sliderMap).forEach(([id, config]) => {
@@ -1029,13 +1011,6 @@ function bindEvents() {
                 applyFilters();
             });
         });
-    });
-
-    // Advanced filters toggle
-    els.advancedToggle?.addEventListener('click', () => {
-        const expanded = els.advancedToggle.getAttribute('aria-expanded') === 'true';
-        els.advancedToggle.setAttribute('aria-expanded', !expanded);
-        els.advancedContent.hidden = expanded;
     });
 
     // Panel toggle (mobile)
@@ -1106,10 +1081,7 @@ function resetFilters() {
         segment: '',
         minOpp: 0,
         minStd: 0,
-        minNonStd: 0,
-        maxVuln: 1,
-        minVis: 0,
-        maxRisk: 1
+        minNonStd: 0
     };
 
     // Reset UI
@@ -1118,10 +1090,7 @@ function resetFilters() {
     const sliders = [
         { id: 'oppScoreFilter', val: 0, reverse: false },
         { id: 'stdScoreFilter', val: 0, reverse: false },
-        { id: 'nonStdScoreFilter', val: 0, reverse: false },
-        { id: 'vulnScoreFilter', val: 0, reverse: true },
-        { id: 'visScoreFilter', val: 0, reverse: false },
-        { id: 'riskScoreFilter', val: 0, reverse: true }
+        { id: 'nonStdScoreFilter', val: 0, reverse: false }
     ];
 
     sliders.forEach(({ id, val, reverse }) => {
@@ -1129,7 +1098,6 @@ function resetFilters() {
         const valueEl = document.getElementById(id.replace('Filter', 'Value'));
         if (el) el.value = val;
         if (valueEl) {
-            // For reverse filters, display is (1 - val) * 100%
             const displayVal = reverse ? Math.round((1 - val / 100) * 100) : val;
             valueEl.textContent = displayVal + '%';
         }

@@ -194,61 +194,6 @@
                     </div>
                 </section>
 
-                <!-- Derived Metrics Filters (Collapsible) -->
-                <section class="filter-section collapsible" id="advancedFilters">
-                    <header class="filter-header">
-                        <label class="filter-label">Advanced: Fine-tune by factor</label>
-                        <button class="collapsible-toggle" aria-expanded="false" aria-controls="advancedContent" title="Show advanced filters">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M6 9l6 6 6-6"/>
-                            </svg>
-                        </button>
-                    </header>
-                    <div class="collapsible-content" id="advancedContent" hidden>
-                        <div class="score-filter" data-tooltip="How many competitors per square mile. Lower = less competition = easier to enter.">
-                            <div class="score-filter-header">
-                                <span class="score-name">Competition Level (lower is better)</span>
-                                <span class="score-value" id="vulnScoreValue">0%</span>
-                            </div>
-                            <input type="range" id="vulnScoreFilter" min="0" max="100" step="1" value="0"
-                                   class="score-slider" aria-label="Maximum competition level (0-100%)">
-                            <div class="score-thresholds">
-                                <button class="threshold threshold-low" data-value="75" type="button">Low competition</button>
-                                <button class="threshold threshold-med" data-value="50" type="button">Moderate</button>
-                                <button class="threshold threshold-high" data-value="25" type="button">High competition</button>
-                            </div>
-                        </div>
-
-                        <div class="score-filter" data-tooltip="Traffic exposure from major roads. Higher = more visibility for offices and billboards.">
-                            <div class="score-filter-header">
-                                <span class="score-name">Traffic Visibility</span>
-                                <span class="score-value" id="visScoreValue">0%</span>
-                            </div>
-                            <input type="range" id="visScoreFilter" min="0" max="100" step="1" value="0"
-                                   class="score-slider" aria-label="Minimum traffic visibility (0-100%)">
-                            <div class="score-thresholds">
-                                <button class="threshold threshold-low" data-value="25" type="button">Low (25%)</button>
-                                <button class="threshold threshold-med" data-value="50" type="button">Medium (50%)</button>
-                                <button class="threshold threshold-high" data-value="75" type="button">High (75%)</button>
-                            </div>
-                        </div>
-
-                        <div class="score-filter" data-tooltip="Crash density per area. Lower = safer = fewer claims.">
-                            <div class="score-filter-header">
-                                <span class="score-name">Safety Score (lower crashes = better)</span>
-                                <span class="score-value" id="riskScoreValue">0%</span>
-                            </div>
-                            <input type="range" id="riskScoreFilter" min="0" max="100" step="1" value="0"
-                                   class="score-slider" aria-label="Maximum crash risk (0-100%)">
-                            <div class="score-thresholds">
-                                <button class="threshold threshold-low" data-value="75" type="button">Very safe</button>
-                                <button class="threshold threshold-med" data-value="50" type="button">Moderate</button>
-                                <button class="threshold threshold-high" data-value="25" type="button">Higher risk</button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
                 <!-- ZIP Detail Panel -->
                 <section class="detail-section workflow-step-section" id="detailSection" data-step-section="3">
                     <header class="detail-header">
@@ -387,8 +332,7 @@
                         <h3>Filters help you narrow down</h3>
                         <ul class="onboarding-list">
                             <li><strong>Market Type:</strong> Standard (preferred carriers) vs Non-standard (specialty)</li>
-                            <li><strong>Score Sliders:</strong> Set minimum quality thresholds</li>
-                            <li><strong>Advanced:</strong> Fine-tune by competition, traffic, or safety</li>
+                            <li><strong>Score Sliders:</strong> Set minimum quality thresholds for opportunity, standard, and non-standard fit</li>
                         </ul>
                         <div class="onboarding-nav">
                             <button class="btn btn-ghost" data-prev="2">← Back</button>
@@ -462,20 +406,6 @@
 
                             <dt>Non-Standard Market Fit (0–100%)</dt>
                             <dd>High renter %, lower income, independent agents, Spanish-speaking. Best for specialty/high-risk carriers.</dd>
-                        </dl>
-                    </section>
-
-                    <section class="help-section">
-                        <h3>Advanced Filters</h3>
-                        <dl class="help-glossary">
-                            <dt>Competition Level</dt>
-                            <dd>How many insurance agents per square mile. Lower = less saturated = easier to win customers.</dd>
-
-                            <dt>Traffic Visibility</dt>
-                            <dd>Average daily cars on roads in the ZIP. Higher = more people see your office/billboards.</dd>
-
-                            <dt>Safety Score</dt>
-                            <dd>Crash density. Lower crashes = fewer claims = better profitability.</dd>
                         </dl>
                     </section>
 
