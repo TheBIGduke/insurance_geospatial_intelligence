@@ -128,7 +128,7 @@ const els = {};
 // ============================================
 // INITIALIZATION
 // ============================================
-document.addEventListener('DOMContentLoaded', () => {
+function initApp() {
     cacheElements();
     initMap();
     bindEvents();
@@ -136,7 +136,15 @@ document.addEventListener('DOMContentLoaded', () => {
     initOnboarding();
     initWorkflowSteps();
     initQuickHint();
-});
+}
+
+// Handle both deferred and non-deferred script loading
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    // DOM already ready (e.g., script without defer)
+    initApp();
+}
 
 // Cache DOM elements
 function cacheElements() {
@@ -154,7 +162,7 @@ function cacheElements() {
 
     // Panel
     els.panel = document.getElementById('sidePanel');
-    els.panelToggle = document.getElementById('panelToggle');
+    els.panelToggle = document.getElementById('headerPanelToggle');
     els.panelContent = document.getElementById('panelContent');
 
     // Filters
@@ -780,6 +788,9 @@ function showZipInfo(props) {
 
     // Update highlight
     updateHighlight(props.zip_code);
+
+    // Update stats to reflect current filter state
+    updateStats();
 }
 
 function showEmptyDetail() {
@@ -1013,12 +1024,19 @@ function bindEvents() {
         });
     });
 
-    // Panel toggle (mobile)
-    els.panelToggle?.addEventListener('click', () => {
-        state.ui.panelCollapsed = !state.ui.panelCollapsed;
-        els.panel.classList.toggle('collapsed', state.ui.panelCollapsed);
-        els.panelToggle.setAttribute('aria-expanded', !state.ui.panelCollapsed);
-    });
+    // Panel toggle (in header)
+    // Panel starts open on desktop
+    els.panel.classList.remove('collapsed');
+    state.ui.panelCollapsed = false;
+    if (els.panelToggle) {
+        els.panelToggle.setAttribute('aria-expanded', 'true');
+        els.panelToggle.addEventListener('click', () => {
+            state.ui.panelCollapsed = !state.ui.panelCollapsed;
+            const expanded = !state.ui.panelCollapsed;
+            els.panel.classList.toggle('collapsed', state.ui.panelCollapsed);
+            els.panelToggle.setAttribute('aria-expanded', expanded);
+        });
+    }
 
     // Legend toggle
     els.legendToggle?.addEventListener('click', () => {
@@ -1366,6 +1384,16 @@ function closeOnboarding() {
     const modal = document.getElementById('onboardingModal');
     closeModal(modal);
     modal.close();
+
+    // Reveal side panel after onboarding completes
+    const panel = document.getElementById('sidePanel');
+    if (panel && panel.classList.contains('collapsed')) {
+        panel.classList.remove('collapsed');
+        // Update panel toggle button state
+        if (els.panelToggle) {
+            els.panelToggle.setAttribute('aria-expanded', 'true');
+        }
+    }
 }
 
 // Make functions globally accessible for inline handlers
