@@ -1418,12 +1418,7 @@ body {
     transform: translateY(0);
 }
 
-/* Initially show step 1 section */
-.workflow-step-section[data-step-section="1"] {
-    display: block;
-    opacity: 1;
-    transform: translateY(0);
-}
+/* Initial state managed by JavaScript - no hardcoded display rule */
 
 /* ============================================
    QUICK HINT
