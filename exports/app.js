@@ -66,14 +66,14 @@ const CONFIG = {
     ],
     // Segment definitions (matching backend)
     SEGMENTS: {
-        'Prime_Standard': { label: 'Prime Standard', color: '#2563eb', desc: 'High opportunity, strong demographics, favorable competition' },
-        'Strong_Standard': { label: 'Strong Standard', color: '#16a34a', desc: 'Good opportunity, solid demographics' },
-        'Prime_NonStandard': { label: 'Prime Non-Standard', color: '#d97706', desc: 'High non-standard score, underserved' },
-        'Strong_NonStandard': { label: 'Strong Non-Standard', color: '#9333ea', desc: 'Solid non-standard fundamentals' },
-        'Spanish_Standard': { label: 'Spanish Standard', color: '#db2777', desc: 'High Spanish-speaking %, standard market' },
-        'Spanish_NonStandard': { label: 'Spanish Non-Standard', color: '#ec4899', desc: 'High Spanish-speaking %, non-standard market' },
-        'Market_Gap_Opportunity': { label: 'Market Gap', color: '#dc2626', desc: 'High demand, few competitors - greenfield' },
-        'Moderate': { label: 'Moderate', color: '#64748b', desc: 'Balanced metrics - monitor for shifts' }
+        'Prime_Standard': { label: 'Prime Standard', color: '#0088ff', desc: 'High opportunity, strong demographics, favorable competition' },
+        'Strong_Standard': { label: 'Strong Standard', color: '#00d46a', desc: 'Good opportunity, solid demographics' },
+        'Prime_NonStandard': { label: 'Prime Non-Standard', color: '#ff8c00', desc: 'High non-standard score, underserved' },
+        'Strong_NonStandard': { label: 'Strong Non-Standard', color: '#b870ff', desc: 'Solid non-standard fundamentals' },
+        'Spanish_Standard': { label: 'Spanish Standard', color: '#ff33aa', desc: 'High Spanish-speaking %, standard market' },
+        'Spanish_NonStandard': { label: 'Spanish Non-Standard', color: '#ff6ec7', desc: 'High Spanish-speaking %, non-standard market' },
+        'Market_Gap_Opportunity': { label: 'Market Gap', color: '#ff3344', desc: 'High demand, few competitors - greenfield' },
+        'Moderate': { label: 'Moderate', color: '#6ea8ff', desc: 'Balanced metrics - monitor for shifts' }
     },
     // Formatting helpers
     FORMAT: {
@@ -424,7 +424,7 @@ function buildSegmentColorExpression() {
         }
     });
 
-    // Highlight layer for selected ZIP
+    // Highlight layer for selected ZIP - bottom edge (line)
     state.map.addLayer({
         id: 'zip-highlight',
         type: 'line',
@@ -434,6 +434,24 @@ function buildSegmentColorExpression() {
             'line-color': '#d4a843',
             'line-width': 3,
             'line-opacity': 1
+        }
+    });
+
+    // Highlight layer for selected ZIP - top edge (thin fill-extrusion slice)
+    state.map.addLayer({
+        id: 'zip-highlight-top',
+        type: 'fill-extrusion',
+        source: 'zip-data',
+        filter: ['==', 'zip_code', ''],
+        paint: {
+            'fill-extrusion-color': '#d4a843',
+            'fill-extrusion-height': 3,  // Thin top slice
+            'fill-extrusion-base': [
+                'interpolate', ['exponential', 1.5], ['get', 'overall_opportunity_score'],
+                0.34, CONFIG.EXTRUSION.min - 3,
+                0.69, CONFIG.EXTRUSION.max - 3
+            ],
+            'fill-extrusion-opacity': 1
         }
     });
 }
@@ -661,9 +679,11 @@ function applyFilters() {
     updateActiveFiltersCount();
 }
 
-// Update highlight layer filter
+// Update highlight layer filters (both bottom line and top slice)
 function updateHighlight(zipCode) {
-    state.map.setFilter('zip-highlight', ['==', 'zip_code', zipCode || '']);
+    const filter = ['==', 'zip_code', zipCode || ''];
+    state.map.setFilter('zip-highlight', filter);
+    state.map.setFilter('zip-highlight-top', filter);
 }
 
 // Populate segment filter dropdown
@@ -1332,35 +1352,51 @@ function updateWorkflowFromInteraction(stepNum) {
 function initOnboarding() {
     const modal = document.getElementById('onboardingModal');
     const dontShow = document.getElementById('dontShowAgain');
+    const footerNav = document.getElementById('onboardingFooterNav');
 
     // Check if user dismissed before
     if (localStorage.getItem('onboardingDismissed') === 'true') {
         return;
     }
 
+    // Create footer navigation buttons
+    createOnboardingFooterNav();
+
     // Show modal after a brief delay
     setTimeout(() => {
         modal.showModal();
         openModal(modal);
+        // Initialize footer nav for step 1
+        updateOnboardingFooterNav('1');
     }, 500);
 
-    // Navigation buttons
-    modal.querySelectorAll('[data-next]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const nextStep = btn.dataset.next;
-            showOnboardingStep(nextStep);
-        });
+    // Navigation buttons - use event delegation on footer
+    footerNav?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-next], [data-prev], #onboardingDone');
+        if (!btn) return;
+
+        if (btn.id === 'onboardingDone') {
+            closeOnboarding();
+        } else if (btn.dataset.next) {
+            showOnboardingStep(btn.dataset.next);
+        } else if (btn.dataset.prev) {
+            showOnboardingStep(btn.dataset.prev);
+        }
     });
 
-    modal.querySelectorAll('[data-prev]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const prevStep = btn.dataset.prev;
-            showOnboardingStep(prevStep);
-        });
+    // Also bind click on the buttons directly as fallback
+    document.getElementById('footerPrevBtn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const step = e.target.dataset.prev;
+        if (step) showOnboardingStep(step);
     });
-
-    // Done button
-    document.getElementById('onboardingDone')?.addEventListener('click', () => {
+    document.getElementById('footerNextBtn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const step = e.target.dataset.next;
+        if (step) showOnboardingStep(step);
+    });
+    document.getElementById('onboardingDone')?.addEventListener('click', (e) => {
+        e.stopPropagation();
         closeOnboarding();
     });
 
@@ -1374,10 +1410,62 @@ function initOnboarding() {
     // Close on backdrop click - handled by bindEvents with focus management
 }
 
+function createOnboardingFooterNav() {
+    const footerNav = document.getElementById('onboardingFooterNav');
+    if (!footerNav) return;
+
+    footerNav.innerHTML = `
+        <button class="btn btn-ghost" data-prev="1" id="footerPrevBtn" style="display: none;">← Back</button>
+        <button class="btn btn-primary" data-next="2" id="footerNextBtn">Next →</button>
+        <button class="btn btn-primary" id="onboardingDone" style="display: none;">Start Exploring →</button>
+    `;
+}
+
 function showOnboardingStep(stepNum) {
     document.querySelectorAll('.onboarding-step').forEach(step => {
         step.classList.toggle('active', step.dataset.step === stepNum);
     });
+    updateOnboardingFooterNav(stepNum);
+}
+
+function updateOnboardingFooterNav(stepNum) {
+    const prevBtn = document.getElementById('footerPrevBtn');
+    const nextBtn = document.getElementById('footerNextBtn');
+    const doneBtn = document.getElementById('onboardingDone');
+
+    if (!prevBtn || !nextBtn || !doneBtn) return;
+
+    // Hide all by default
+    prevBtn.style.display = 'none';
+    nextBtn.style.display = 'none';
+    doneBtn.style.display = 'none';
+
+    switch (stepNum) {
+        case '1':
+            nextBtn.style.display = 'inline-flex';
+            nextBtn.dataset.next = '2';
+            nextBtn.textContent = 'Next →';
+            break;
+        case '2':
+            prevBtn.style.display = 'inline-flex';
+            prevBtn.dataset.prev = '1';
+            nextBtn.style.display = 'inline-flex';
+            nextBtn.dataset.next = '3';
+            nextBtn.textContent = 'Next →';
+            break;
+        case '3':
+            prevBtn.style.display = 'inline-flex';
+            prevBtn.dataset.prev = '2';
+            nextBtn.style.display = 'inline-flex';
+            nextBtn.dataset.next = '4';
+            nextBtn.textContent = 'Next →';
+            break;
+        case '4':
+            prevBtn.style.display = 'inline-flex';
+            prevBtn.dataset.prev = '3';
+            doneBtn.style.display = 'inline-flex';
+            break;
+    }
 }
 
 function closeOnboarding() {
