@@ -14,7 +14,9 @@ ADD COLUMN IF NOT EXISTS standard_market_score NUMERIC,
 ADD COLUMN IF NOT EXISTS non_standard_market_score NUMERIC,
 ADD COLUMN IF NOT EXISTS spanish_market_flag BOOLEAN,
 ADD COLUMN IF NOT EXISTS overall_opportunity_score NUMERIC,
-ADD COLUMN IF NOT EXISTS market_segment VARCHAR(50);
+ADD COLUMN IF NOT EXISTS market_segment VARCHAR(50),
+ADD COLUMN IF NOT EXISTS spanish_market_score NUMERIC,
+ADD COLUMN IF NOT EXISTS profitability_index NUMERIC;
 
 -- ============================================================================
 -- NORMALIZATION HELPER FUNCTION
@@ -60,10 +62,18 @@ WITH percentiles AS (
         percentile_cont(0.95) WITHIN GROUP (ORDER BY renter_pct)::numeric AS renter_p95,
         percentile_cont(0.05) WITHIN GROUP (ORDER BY spanish_speaking_pct)::numeric AS spanish_p05,
         percentile_cont(0.95) WITHIN GROUP (ORDER BY spanish_speaking_pct)::numeric AS spanish_p95,
+        percentile_cont(0.05) WITHIN GROUP (ORDER BY hispanic_pct)::numeric AS hispanic_p05,
+        percentile_cont(0.95) WITHIN GROUP (ORDER BY hispanic_pct)::numeric AS hispanic_p95,
         percentile_cont(0.05) WITHIN GROUP (ORDER BY franchise_competitors)::numeric AS fran_p05,
         percentile_cont(0.95) WITHIN GROUP (ORDER BY franchise_competitors)::numeric AS fran_p95,
         percentile_cont(0.05) WITHIN GROUP (ORDER BY independent_competitors)::numeric AS indep_p05,
-        percentile_cont(0.95) WITHIN GROUP (ORDER BY independent_competitors)::numeric AS indep_p95
+        percentile_cont(0.95) WITHIN GROUP (ORDER BY independent_competitors)::numeric AS indep_p95,
+        percentile_cont(0.05) WITHIN GROUP (ORDER BY transit_commute_pct)::numeric AS transit_p05,
+        percentile_cont(0.95) WITHIN GROUP (ORDER BY transit_commute_pct)::numeric AS transit_p95,
+        percentile_cont(0.05) WITHIN GROUP (ORDER BY wfh_pct)::numeric AS wfh_p05,
+        percentile_cont(0.95) WITHIN GROUP (ORDER BY wfh_pct)::numeric AS wfh_p95,
+        percentile_cont(0.05) WITHIN GROUP (ORDER BY uninsured_pct)::numeric AS uninsured_p05,
+        percentile_cont(0.95) WITHIN GROUP (ORDER BY uninsured_pct)::numeric AS uninsured_p95
     FROM zip_opportunity_metrics
     WHERE area_sqkm > 0
 )
@@ -140,7 +150,19 @@ SET
     -- ============================================================
     -- SPANISH MARKET FLAG
     -- ============================================================
-    spanish_market_flag = (zom.spanish_speaking_pct > 30)
+    spanish_market_flag = (zom.spanish_speaking_pct > 30),
+
+    -- ============================================================
+    -- SPANISH MARKET SCORE (Enhanced with real ACS data)
+    -- Combines: Spanish-speaking %, Hispanic %, uninsured proxy
+    -- ============================================================
+    spanish_market_score = (
+        normalize_metric(zom.spanish_speaking_pct::numeric, p.spanish_p05, p.spanish_p95) * 0.35 +
+        normalize_metric(zom.hispanic_pct::numeric, p.hispanic_p05, p.hispanic_p95) * 0.30 +
+        normalize_metric(zom.uninsured_pct::numeric, p.uninsured_p05, p.uninsured_p95) * 0.15 +
+        (1 - normalize_metric(zom.transit_commute_pct::numeric, p.transit_p05, p.transit_p95)) * 0.10 +
+        (1 - normalize_metric(zom.wfh_pct::numeric, p.wfh_p05, p.wfh_p95)) * 0.10
+    )
 
 FROM percentiles p
 WHERE zom.area_sqkm > 0;
@@ -151,18 +173,20 @@ WHERE zom.area_sqkm > 0;
 -- ============================================================================
 WITH pctl AS (
     SELECT
-        percentile_cont(0.75) WITHIN GROUP (ORDER BY median_home_value) AS home_p75
+        percentile_cont(0.75) WITHIN GROUP (ORDER BY median_home_value) AS home_p75,
+        percentile_cont(0.75) WITHIN GROUP (ORDER BY spanish_market_score) AS spanish_p75,
+        percentile_cont(0.75) WITHIN GROUP (ORDER BY overall_opportunity_score) AS overall_p75
     FROM zip_opportunity_metrics
     WHERE area_sqkm > 0
 )
 UPDATE zip_opportunity_metrics zom
 SET
     -- ============================================================
-    -- MARKET SEGMENT CLASSIFICATION
+    -- MARKET SEGMENT CLASSIFICATION (Enhanced with spanish_market_score)
     -- ============================================================
     market_segment = CASE
-        WHEN zom.spanish_speaking_pct > 30 AND zom.renter_pct > 50 THEN 'Spanish_NonStandard'
-        WHEN zom.spanish_speaking_pct > 30 AND zom.median_home_value > pctl.home_p75 THEN 'Spanish_Standard'
+        WHEN zom.spanish_market_score > pctl.spanish_p75 AND zom.renter_pct > 50 THEN 'Spanish_NonStandard'
+        WHEN zom.spanish_market_score > pctl.spanish_p75 AND zom.median_home_value > pctl.home_p75 THEN 'Spanish_Standard'
         WHEN zom.standard_market_score > 0.7 THEN 'Prime_Standard'
         WHEN zom.standard_market_score > 0.5 THEN 'Strong_Standard'
         WHEN zom.non_standard_market_score > 0.7 THEN 'Prime_NonStandard'
@@ -180,6 +204,18 @@ SET
         zom.visibility_multiplier * 0.20 +
         zom.risk_alignment * 0.15 +
         GREATEST(zom.standard_market_score, zom.non_standard_market_score) * 0.40
+    ),
+
+    -- ============================================================
+    -- PROFITABILITY INDEX (New)
+    -- Combines opportunity with risk adjustment for true profitability
+    -- ============================================================
+    profitability_index = (
+        0.30 * zom.overall_opportunity_score +
+        0.25 * (1 - zom.risk_alignment) +
+        0.20 * zom.vehicles_per_household / 3.0 +  -- normalize roughly
+        0.15 * zom.median_household_income / 150000.0 +  -- normalize roughly
+        0.10 * zom.spanish_market_score
     )
 FROM pctl
 WHERE zom.area_sqkm > 0;
@@ -194,6 +230,8 @@ CREATE INDEX IF NOT EXISTS idx_zip_opp_standard ON zip_opportunity_metrics (stan
 CREATE INDEX IF NOT EXISTS idx_zip_opp_nonstandard ON zip_opportunity_metrics (non_standard_market_score DESC);
 CREATE INDEX IF NOT EXISTS idx_zip_opp_overall ON zip_opportunity_metrics (overall_opportunity_score DESC);
 CREATE INDEX IF NOT EXISTS idx_zip_opp_segment ON zip_opportunity_metrics (market_segment);
+CREATE INDEX IF NOT EXISTS idx_zip_opp_spanish ON zip_opportunity_metrics (spanish_market_score DESC);
+CREATE INDEX IF NOT EXISTS idx_zip_opp_profitability ON zip_opportunity_metrics (profitability_index DESC);
 
 -- ============================================================================
 -- VERIFICATION QUERIES

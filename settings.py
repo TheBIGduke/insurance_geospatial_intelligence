@@ -153,28 +153,42 @@ TABLE_FINAL = "zip_opportunity_metrics"
 PIPELINE_CONFIG = config.get("pipeline", {})
 CHUNK_SIZE = PIPELINE_CONFIG.get("chunk_size", 10000)
 
-# Census API variables for ZIP-level data
+# Census API variables for ZIP-level data (ACS 5-year)
+# All variables available at ZCTA level via API
 ACS_VARIABLES = {
-    # DP04 - Selected Housing Characteristics
-    "median_home_value": "DP04_0089E",
-    "median_gross_rent": "DP04_0134E",
-    "total_housing_units": "DP04_0001E",
-    "occupied_housing_units": "DP04_0002E",
-    "owner_occupied": "DP04_0003E",
-    "renter_occupied": "DP04_0004E",
-    "vehicles_per_household": "DP04_0058E",
-    # B25044 - Tenure by Vehicles Available
+    # Income & Housing
+    "median_household_income": "B19013_001E",
+    "median_home_value": "B25077_001E",
+    "median_gross_rent": "B25064_001E",
+    # Vehicles (B25044 - Tenure by Vehicles Available)
     "vehicles_available_total": "B25044_001E",
     "vehicles_0": "B25044_003E",
     "vehicles_1": "B25044_004E",
     "vehicles_2": "B25044_005E",
     "vehicles_3": "B25044_006E",
     "vehicles_4": "B25044_007E",
-    # B19013 - Median Household Income
-    "median_household_income": "B19013_001E",
-    # B16001 - Language Spoken at Home
+    # Language - CRITICAL for Latino targeting (B16001)
     "spanish_speaking_home": "B16001_006E",
+    "spanish_speaking_limited_english": "B16001_007E",
     "total_population_5plus": "B16001_001E",
+    # Tenure (B25003)
+    "owner_occupied": "B25003_002E",
+    "renter_occupied": "B25003_003E",
+    "total_housing_units": "B25001_001E",
+    # Demographics (B03003 - Hispanic or Latino Origin)
+    "hispanic_population": "B03003_003E",
+    "total_population": "B03003_001E",
+    # Insurance proxy (S2702 / B27001 - Health Insurance)
+    "uninsured_rate": "B27001_005E",  # Uninsured population
+    # Commute Patterns (B08301 - Means of Transportation to Work)
+    "commute_time_avg": "B08303_001E",  # Aggregate travel time
+    "commute_car_alone": "B08301_002E",  # Drove alone
+    "commute_carpool": "B08301_003E",  # Carpooled
+    "commute_transit": "B08301_004E",  # Public transit
+    "commute_walk": "B08301_005E",  # Walked
+    "commute_other": "B08301_006E",  # Other means
+    "commute_work_home": "B08301_007E",  # Worked from home
+    "total_commuters": "B08301_001E",  # Total workers 16+
 }
 
 # Derived metric weights

@@ -39,7 +39,7 @@ def run_sql_file(sql_file: Path, db_url: str):
     psql_url = db_url.replace("postgresql+psycopg2://", "postgresql://")
     try:
         result = subprocess.run(
-            ["psql", psql_url, "-f", str(sql_file)],
+            ["psql", "-v", "ON_ERROR_STOP=on", psql_url, "-f", str(sql_file)],
             capture_output=True,
             text=True,
             timeout=300,

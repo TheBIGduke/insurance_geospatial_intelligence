@@ -44,6 +44,50 @@
             0,
             1
           ]
+        },
+        {
+          "id": "spanish_market_filter",
+          "type": "range",
+          "dataId": "zip_opportunity_metrics",
+          "name": "Spanish Market Score",
+          "column": "spanish_market_score",
+          "domain": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "profitability_filter",
+          "type": "range",
+          "dataId": "zip_opportunity_metrics",
+          "name": "Profitability Index",
+          "column": "profitability_index",
+          "domain": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "spanish_speaking_filter",
+          "type": "range",
+          "dataId": "zip_opportunity_metrics",
+          "name": "Spanish Speaking %",
+          "column": "spanish_speaking_pct",
+          "domain": [
+            0,
+            100
+          ]
+        },
+        {
+          "id": "hispanic_filter",
+          "type": "range",
+          "dataId": "zip_opportunity_metrics",
+          "name": "Hispanic Population %",
+          "column": "hispanic_pct",
+          "domain": [
+            0,
+            100
+          ]
         }
       ],
       "layers": [
@@ -311,11 +355,19 @@
                 "format": ".3f"
               },
               {
+                "name": "profitability_index",
+                "format": ".3f"
+              },
+              {
                 "name": "standard_market_score",
                 "format": ".3f"
               },
               {
                 "name": "non_standard_market_score",
+                "format": ".3f"
+              },
+              {
+                "name": "spanish_market_score",
                 "format": ".3f"
               },
               {
@@ -339,6 +391,10 @@
                 "format": "$,.0f"
               },
               {
+                "name": "median_gross_rent",
+                "format": "$,.0f"
+              },
+              {
                 "name": "vehicles_per_household",
                 "format": ".2f"
               },
@@ -348,6 +404,30 @@
               },
               {
                 "name": "spanish_speaking_pct",
+                "format": ".1f"
+              },
+              {
+                "name": "hispanic_pct",
+                "format": ".1f"
+              },
+              {
+                "name": "car_commute_pct",
+                "format": ".1f"
+              },
+              {
+                "name": "transit_commute_pct",
+                "format": ".1f"
+              },
+              {
+                "name": "wfh_pct",
+                "format": ".1f"
+              },
+              {
+                "name": "avg_commute_time",
+                "format": ".1f"
+              },
+              {
+                "name": "uninsured_pct",
                 "format": ".1f"
               },
               {

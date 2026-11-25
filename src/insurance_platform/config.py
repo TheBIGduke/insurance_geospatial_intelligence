@@ -28,6 +28,9 @@ from settings import (
     CHUNK_SIZE,
     METRIC_WEIGHTS,
     EXPORT_DIR,
+    ACS_VARIABLES,
+    CENSUS_API_KEY,
+    CENSUS_BASE_URL,
 )
 
 # Re-export for backward compatibility
@@ -55,4 +58,7 @@ __all__ = [
     "CHUNK_SIZE",
     "METRIC_WEIGHTS",
     "EXPORT_DIR",
+    "ACS_VARIABLES",
+    "CENSUS_API_KEY",
+    "CENSUS_BASE_URL",
 ]

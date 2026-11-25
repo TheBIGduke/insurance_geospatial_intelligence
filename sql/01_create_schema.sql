@@ -51,7 +51,7 @@ CREATE INDEX IF NOT EXISTS idx_zip_code_boundaries_zip ON zip_code_boundaries (z
 CREATE INDEX IF NOT EXISTS idx_census_demographics_zip ON census_demographics (zip_code);
 CREATE INDEX IF NOT EXISTS idx_competitors_postal ON competitors (postal_code);
 CREATE INDEX IF NOT EXISTS idx_competitors_type ON competitors (agency_type);
-CREATE INDEX IF NOT EXISTS idx_roads_county ON roads (county);
+CREATE INDEX IF NOT EXISTS idx_roads_county ON roads ("COUNTY");
 
 -- ============================================================================
 -- Helper Function: Point in Polygon Check

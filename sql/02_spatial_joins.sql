@@ -68,20 +68,27 @@ CREATE INDEX IF NOT EXISTS idx_zip_road_metrics_zip ON zip_road_metrics (zip_cod
 
 -- ============================================================================
 -- DEMOGRAPHICS: Already at ZIP level, just ensure clean join
+-- Includes real ACS data + derived metrics
 -- ============================================================================
 CREATE MATERIALIZED VIEW IF NOT EXISTS zip_demographics AS
 SELECT
     d.zip_code,
     d.median_home_value,
     d.median_household_income,
+    d.median_gross_rent,
     d.vehicles_per_household,
     d.renter_pct,
     d.spanish_speaking_pct,
+    d.hispanic_pct,
     d.total_housing_units,
     d.occupied_housing_units,
     d.owner_occupied,
     d.renter_occupied,
-    d.median_gross_rent
+    d.car_commute_pct,
+    d.transit_commute_pct,
+    d.wfh_pct,
+    d.avg_commute_time,
+    d.uninsured_pct
 FROM census_demographics d
 WHERE d.zip_code IN (SELECT zip_code FROM zip_code_boundaries);
 
@@ -118,15 +125,27 @@ SELECT
     COALESCE(rm.road_density_km_per_sqkm, 0) AS road_density_km_per_sqkm,
     COALESCE(rm.major_highway_count, 0) AS major_highway_count,
 
-    -- Demographics
+    -- Demographics (real ACS data)
     COALESCE(d.median_home_value, 0) AS median_home_value,
     COALESCE(d.median_household_income, 0) AS median_household_income,
+    COALESCE(d.median_gross_rent, 0) AS median_gross_rent,
     COALESCE(d.vehicles_per_household, 0) AS vehicles_per_household,
     COALESCE(d.renter_pct, 0) AS renter_pct,
     COALESCE(d.spanish_speaking_pct, 0) AS spanish_speaking_pct,
+    COALESCE(d.hispanic_pct, 0) AS hispanic_pct,
     COALESCE(d.total_housing_units, 0) AS total_housing_units,
     COALESCE(d.occupied_housing_units, 0) AS occupied_housing_units,
-    COALESCE(d.median_gross_rent, 0) AS median_gross_rent,
+    COALESCE(d.owner_occupied, 0) AS owner_occupied,
+    COALESCE(d.renter_occupied, 0) AS renter_occupied,
+
+    -- Commute patterns
+    COALESCE(d.car_commute_pct, 0) AS car_commute_pct,
+    COALESCE(d.transit_commute_pct, 0) AS transit_commute_pct,
+    COALESCE(d.wfh_pct, 0) AS wfh_pct,
+    COALESCE(d.avg_commute_time, 0) AS avg_commute_time,
+
+    -- Insurance proxy
+    COALESCE(d.uninsured_pct, 0) AS uninsured_pct,
 
     -- Area for reference
     ST_Area(z.geometry::geography) / 1000000.0 AS area_sqkm,
@@ -179,12 +198,20 @@ BEGIN
         COALESCE(rm.major_highway_count, 0),
         COALESCE(d.median_home_value, 0),
         COALESCE(d.median_household_income, 0),
+        COALESCE(d.median_gross_rent, 0),
         COALESCE(d.vehicles_per_household, 0),
         COALESCE(d.renter_pct, 0),
         COALESCE(d.spanish_speaking_pct, 0),
+        COALESCE(d.hispanic_pct, 0),
         COALESCE(d.total_housing_units, 0),
         COALESCE(d.occupied_housing_units, 0),
-        COALESCE(d.median_gross_rent, 0),
+        COALESCE(d.owner_occupied, 0),
+        COALESCE(d.renter_occupied, 0),
+        COALESCE(d.car_commute_pct, 0),
+        COALESCE(d.transit_commute_pct, 0),
+        COALESCE(d.wfh_pct, 0),
+        COALESCE(d.avg_commute_time, 0),
+        COALESCE(d.uninsured_pct, 0),
         ST_Area(z.geometry::geography) / 1000000.0,
         ST_Y(ST_Centroid(z.geometry)),
         ST_X(ST_Centroid(z.geometry))
