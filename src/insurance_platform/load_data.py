@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import requests
 from geoalchemy2 import Geometry, WKTElement
@@ -43,6 +44,8 @@ logger = get_logger(__name__)
 
 # Census API batch size (max 50 variables per request)
 CENSUS_BATCH_SIZE = 45
+# ZIP code batch size (keep URL length reasonable, ~100-200 ZIPs per request)
+CENSUS_ZIP_BATCH_SIZE = 100
 # Rate limiting: 500 requests/second default, be conservative
 CENSUS_RATE_LIMIT_DELAY = 0.01  # seconds between requests
 
@@ -220,6 +223,51 @@ def load_census_demographics(
         logger.info("Loading Census demographics from ACS API...")
         demographics_df = _fetch_census_acs_data(zip_codes)
 
+    # Ensure all numeric columns are float type (not object/text) for SQL compatibility
+    numeric_columns = [
+        "median_household_income",
+        "median_home_value",
+        "median_gross_rent",
+        "vehicles_available_total",
+        "vehicles_0",
+        "vehicles_1",
+        "vehicles_2",
+        "vehicles_3",
+        "vehicles_4",
+        "spanish_speaking_home",
+        "spanish_speaking_limited_english",
+        "total_population_5plus",
+        "owner_occupied",
+        "renter_occupied",
+        "total_housing_units",
+        "hispanic_population",
+        "total_population",
+        "uninsured_rate",
+        "commute_time_avg",
+        "commute_car_alone",
+        "commute_carpool",
+        "commute_transit",
+        "commute_walk",
+        "commute_other",
+        "commute_work_home",
+        "total_commuters",
+        "spanish_speaking_pct",
+        "hispanic_pct",
+        "occupied_housing_units",
+        "renter_pct",
+        "vehicles_per_household",
+        "car_commute_pct",
+        "carpool_commute_pct",
+        "transit_commute_pct",
+        "walk_commute_pct",
+        "wfh_pct",
+        "avg_commute_time",
+        "uninsured_pct",
+    ]
+    for col in numeric_columns:
+        if col in demographics_df.columns:
+            demographics_df[col] = pd.to_numeric(demographics_df[col], errors="coerce")
+
     # Load to PostGIS (as non-spatial table)
     logger.info(
         f"Writing {len(demographics_df)} demographic records to {TABLE_DEMOGRAPHICS}..."
@@ -249,7 +297,8 @@ def load_census_demographics(
 def _fetch_census_acs_data(zip_codes: list) -> pd.DataFrame:
     """
     Fetch real Census ACS data for the given ZIP codes.
-    Batches requests to stay within API limits (max 50 variables per request).
+    Batches requests to stay within API limits (max 50 variables per request,
+    and ~100 ZIP codes per request to avoid URL length limits).
     """
     if not CENSUS_API_KEY:
         return _create_placeholder_demographics(zip_codes)
@@ -260,72 +309,79 @@ def _fetch_census_acs_data(zip_codes: list) -> pd.DataFrame:
     var_codes = [v[1] for v in variables]
 
     # Split variables into batches (max ~45 per request to be safe)
-    batches = []
+    var_batches = []
     for i in range(0, len(var_codes), CENSUS_BATCH_SIZE):
         batch_vars = var_codes[i : i + CENSUS_BATCH_SIZE]
         batch_names = var_names[i : i + CENSUS_BATCH_SIZE]
-        batches.append((batch_names, batch_vars))
+        var_batches.append((batch_names, batch_vars))
+
+    # Split ZIP codes into batches to avoid URL length limits
+    zip_batches = []
+    for i in range(0, len(zip_codes), CENSUS_ZIP_BATCH_SIZE):
+        zip_batches.append(zip_codes[i : i + CENSUS_ZIP_BATCH_SIZE])
 
     logger.info(
-        f"Fetching {len(variables)} variables in {len(batches)} batches for {len(zip_codes)} ZIP codes"
+        f"Fetching {len(variables)} variables in {len(var_batches)} variable batches "
+        f"× {len(zip_batches)} ZIP batches for {len(zip_codes)} ZIP codes"
     )
-
-    # Prepare ZIP code filter for Texas (state FIPS 48)
-    # API expects format: zip code tabulation area:*
-    # with in=state:48 for Texas only
-    zip_filter = ",".join(zip_codes)
 
     all_results = {}
 
-    for batch_idx, (batch_names, batch_vars) in enumerate(batches):
-        # Build API request
+    for var_batch_idx, (batch_names, batch_vars) in enumerate(var_batches):
         vars_param = ",".join(["NAME"] + batch_vars)
-        url = f"{CENSUS_BASE_URL}?get={vars_param}&for=zip%20code%20tabulation%20area:{zip_filter}&in=state:48&key={CENSUS_API_KEY}"
 
-        try:
-            logger.debug(
-                f"Batch {batch_idx + 1}/{len(batches)}: requesting {len(batch_vars)} variables"
-            )
-            response = requests.get(url, timeout=60)
+        for zip_batch_idx, zip_batch in enumerate(zip_batches):
+            zip_filter = ",".join(zip_batch)
+            url = f"{CENSUS_BASE_URL}?get={vars_param}&for=zip%20code%20tabulation%20area:{zip_filter}&key={CENSUS_API_KEY}"
 
-            if response.status_code == 429:
-                # Rate limited - wait and retry
-                logger.warning("Rate limited by Census API, waiting 2 seconds...")
-                time.sleep(2)
+            try:
+                logger.debug(
+                    f"Var batch {var_batch_idx + 1}/{len(var_batches)}, "
+                    f"ZIP batch {zip_batch_idx + 1}/{len(zip_batches)}: "
+                    f"{len(batch_vars)} variables × {len(zip_batch)} ZIPs"
+                )
                 response = requests.get(url, timeout=60)
 
-            response.raise_for_status()
-            data = response.json()
+                if response.status_code == 429:
+                    # Rate limited - wait and retry
+                    logger.warning("Rate limited by Census API, waiting 2 seconds...")
+                    time.sleep(2)
+                    response = requests.get(url, timeout=60)
 
-            # First row is headers
-            headers = data[0]
-            rows = data[1:]
+                response.raise_for_status()
+                data = response.json()
 
-            # Map results by ZIP code
-            for row in rows:
-                row_dict = dict(zip(headers, row))
-                zip_code = row_dict.get("zip code tabulation area", "").zfill(5)
-                if zip_code not in all_results:
-                    all_results[zip_code] = {}
-                for var_name in batch_names:
-                    var_code = ACS_VARIABLES[var_name]
-                    value = row_dict.get(var_code)
-                    # Handle missing/suppressed data (empty string or negative)
-                    if value is not None and value != "" and value != "-":
-                        try:
-                            all_results[zip_code][var_name] = float(value)
-                        except (ValueError, TypeError):
+                # First row is headers
+                headers = data[0]
+                rows = data[1:]
+
+                # Map results by ZIP code
+                for row in rows:
+                    row_dict = dict(zip(headers, row))
+                    zip_code = row_dict.get("zip code tabulation area", "").zfill(5)
+                    if zip_code not in all_results:
+                        all_results[zip_code] = {}
+                    for var_name in batch_names:
+                        var_code = ACS_VARIABLES[var_name]
+                        value = row_dict.get(var_code)
+                        # Handle missing/suppressed data (empty string or negative)
+                        if value is not None and value != "" and value != "-":
+                            try:
+                                all_results[zip_code][var_name] = float(value)
+                            except (ValueError, TypeError):
+                                all_results[zip_code][var_name] = None
+                        else:
                             all_results[zip_code][var_name] = None
-                    else:
-                        all_results[zip_code][var_name] = None
 
-            # Rate limiting
-            if batch_idx < len(batches) - 1:
+                # Rate limiting between requests
                 time.sleep(CENSUS_RATE_LIMIT_DELAY)
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Census API request failed for batch {batch_idx}: {e}")
-            # Continue with other batches
+            except requests.exceptions.RequestException as e:
+                logger.error(
+                    f"Census API request failed for var batch {var_batch_idx}, "
+                    f"ZIP batch {zip_batch_idx}: {e}"
+                )
+                # Continue with other batches
 
     # If no data was fetched from API (all batches failed), fall back to placeholder
     if not all_results:
@@ -364,14 +420,14 @@ def _compute_derived_demographics(df: pd.DataFrame) -> pd.DataFrame:
     if "spanish_speaking_home" in df.columns and "total_population_5plus" in df.columns:
         df["spanish_speaking_pct"] = (
             df["spanish_speaking_home"]
-            / df["total_population_5plus"].replace(0, pd.NA)
+            / df["total_population_5plus"].replace(0, np.nan)
             * 100
         ).round(1)
 
     # Hispanic population percentage
     if "hispanic_population" in df.columns and "total_population" in df.columns:
         df["hispanic_pct"] = (
-            df["hispanic_population"] / df["total_population"].replace(0, pd.NA) * 100
+            df["hispanic_population"] / df["total_population"].replace(0, np.nan) * 100
         ).round(1)
 
     # Renter percentage
@@ -379,7 +435,9 @@ def _compute_derived_demographics(df: pd.DataFrame) -> pd.DataFrame:
         # Need occupied_housing_units - derive from owner + renter
         df["occupied_housing_units"] = df["owner_occupied"] + df["renter_occupied"]
         df["renter_pct"] = (
-            df["renter_occupied"] / df["occupied_housing_units"].replace(0, pd.NA) * 100
+            df["renter_occupied"]
+            / df["occupied_housing_units"].replace(0, np.nan)
+            * 100
         ).round(1)
 
     # Vehicles per household
@@ -389,12 +447,12 @@ def _compute_derived_demographics(df: pd.DataFrame) -> pd.DataFrame:
     ):
         df["vehicles_per_household"] = (
             df["vehicles_available_total"]
-            / df["occupied_housing_units"].replace(0, pd.NA)
+            / df["occupied_housing_units"].replace(0, np.nan)
         ).round(2)
 
     # Commute percentages
     if "total_commuters" in df.columns:
-        total_commuters = df["total_commuters"].replace(0, pd.NA)
+        total_commuters = df["total_commuters"].replace(0, np.nan)
         if "commute_car_alone" in df.columns:
             df["car_commute_pct"] = (
                 df["commute_car_alone"] / total_commuters * 100
@@ -420,7 +478,7 @@ def _compute_derived_demographics(df: pd.DataFrame) -> pd.DataFrame:
     # Uninsured rate (using B27001_005E as proxy)
     if "uninsured_rate" in df.columns and "total_population" in df.columns:
         df["uninsured_pct"] = (
-            df["uninsured_rate"] / df["total_population"].replace(0, pd.NA) * 100
+            df["uninsured_rate"] / df["total_population"].replace(0, np.nan) * 100
         ).round(1)
 
     # Fill NaN with None for database compatibility
