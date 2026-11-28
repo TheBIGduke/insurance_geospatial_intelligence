@@ -49,9 +49,36 @@ CREATE INDEX IF NOT EXISTS idx_roads_geom ON roads USING GIST (geometry);
 -- Attribute indexes
 CREATE INDEX IF NOT EXISTS idx_zip_code_boundaries_zip ON zip_code_boundaries (zip_code);
 CREATE INDEX IF NOT EXISTS idx_census_demographics_zip ON census_demographics (zip_code);
+CREATE INDEX IF NOT EXISTS idx_census_demographics_source ON census_demographics (data_source);
 CREATE INDEX IF NOT EXISTS idx_competitors_postal ON competitors (postal_code);
 CREATE INDEX IF NOT EXISTS idx_competitors_type ON competitors (agency_type);
 CREATE INDEX IF NOT EXISTS idx_roads_county ON roads ("COUNTY");
+
+-- ============================================================================
+-- TABLE: data_quality (tracks pipeline data source and quality flags)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS data_quality (
+    id SERIAL PRIMARY KEY,
+    table_name VARCHAR(100) NOT NULL,
+    data_source VARCHAR(50) NOT NULL,  -- 'census_api', 'placeholder', etc.
+    record_count INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    notes TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_data_quality_table ON data_quality (table_name);
+CREATE INDEX IF NOT EXISTS idx_data_quality_created ON data_quality (created_at);
+
+-- Insert initial data quality record for census_demographics
+INSERT INTO data_quality (table_name, data_source, record_count, notes)
+SELECT
+    'census_demographics' as table_name,
+    COALESCE(data_source, 'unknown') as data_source,
+    COUNT(*) as record_count,
+    'Auto-recorded during pipeline run' as notes
+FROM census_demographics
+GROUP BY data_source
+ON CONFLICT DO NOTHING;
 
 -- ============================================================================
 -- Helper Function: Point in Polygon Check

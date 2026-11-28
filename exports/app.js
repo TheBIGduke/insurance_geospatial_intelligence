@@ -136,6 +136,47 @@ function initApp() {
     initOnboarding();
     initWorkflowSteps();
     initQuickHint();
+    checkDataQuality(); // Check if mock data is being used
+}
+
+// Check data quality (mock vs real data)
+async function checkDataQuality() {
+    try {
+        const response = await fetch('/api/data-quality');
+        if (!response.ok) throw new Error('Failed to fetch data quality');
+        const data = await response.json();
+
+        const indicator = document.getElementById('dataQualityIndicator');
+        const textEl = document.getElementById('dataQualityText');
+        const dismissBtn = document.getElementById('dqDismiss');
+
+        if (data.is_mock_data) {
+            indicator.hidden = false;
+            textEl.textContent = data.message || 'Using mock demographic data - Census API unavailable';
+            indicator.classList.add('mock-data');
+        } else {
+            indicator.hidden = false;
+            textEl.textContent = data.message || 'Using real Census ACS data';
+            indicator.classList.add('real-data');
+        }
+
+        // Dismiss button handler
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+                indicator.hidden = true;
+            });
+        }
+    } catch (err) {
+        console.warn('Could not check data quality:', err);
+        // Show indicator with error state
+        const indicator = document.getElementById('dataQualityIndicator');
+        const textEl = document.getElementById('dataQualityText');
+        if (indicator && textEl) {
+            indicator.hidden = false;
+            textEl.textContent = 'Unable to verify data source';
+            indicator.classList.add('mock-data');
+        }
+    }
 }
 
 // Handle both deferred and non-deferred script loading
@@ -381,16 +422,16 @@ function addMapLayers() {
     });
 
     // Build segment color match expression
-function buildSegmentColorExpression() {
-    const expr = ['match', ['get', 'market_segment']];
-    Object.entries(CONFIG.SEGMENTS).forEach(([key, seg]) => {
-        expr.push(key, seg.color);
-    });
-    expr.push('#64748b'); // default fallback
-    return expr;
-}
+    function buildSegmentColorExpression() {
+        const expr = ['match', ['get', 'market_segment']];
+        Object.entries(CONFIG.SEGMENTS).forEach(([key, seg]) => {
+            expr.push(key, seg.color);
+        });
+        expr.push('#64748b'); // default fallback
+        return expr;
+    }
 
-// Choropleth fill-extrusion layer - colored by market segment, height by opportunity
+    // Choropleth fill-extrusion layer - colored by market segment, height by opportunity
     state.map.addLayer({
         id: 'zip-layer',
         type: 'fill-extrusion',
@@ -914,10 +955,10 @@ function updateScaleBar() {
     const dLat = (rightPoint.lat - center.lat) * Math.PI / 180;
     const dLon = (rightPoint.lng - center.lng) * Math.PI / 180;
 
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1) * Math.cos(lat2) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1) * Math.cos(lat2) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distanceMeters = R * c;
 
     // Find appropriate threshold

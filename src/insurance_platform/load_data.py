@@ -199,10 +199,11 @@ def load_crash_data(
 
 def load_census_demographics(
     engine, tx_zcta: Optional[gpd.GeoDataFrame] = None
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, str]:
     """
     Load Census demographics data from ACS API.
     Falls back to placeholder if no API key configured.
+    Returns: (demographics_df, data_source) where data_source is "census_api" or "placeholder"
     """
     # Get list of ZIP codes from ZCTA data
     if tx_zcta is not None:
@@ -217,11 +218,29 @@ def load_census_demographics(
 
     # Check if Census API key is configured
     if not CENSUS_API_KEY:
-        logger.warning("No Census API key configured. Using placeholder demographics.")
+        logger.warning(
+            f"No Census API key configured. Using placeholder demographics for {len(zip_codes)} ZIP codes."
+        )
         demographics_df = _create_placeholder_demographics(zip_codes)
+        data_source = "placeholder"
     else:
         logger.info("Loading Census demographics from ACS API...")
         demographics_df = _fetch_census_acs_data(zip_codes)
+        if demographics_df is not None and len(demographics_df) > 0:
+            # Check if the result is from placeholder fallback
+            if "data_source" in demographics_df.columns:
+                data_source = (
+                    demographics_df["data_source"].iloc[0]
+                    if len(demographics_df) > 0
+                    else "unknown"
+                )
+            else:
+                data_source = "census_api"
+        else:
+            data_source = "placeholder"
+
+    # Add data_source column for tracking
+    demographics_df["data_source"] = data_source
 
     # Ensure all numeric columns are float type (not object/text) for SQL compatibility
     numeric_columns = [
@@ -291,7 +310,7 @@ def load_census_demographics(
         conn.commit()
 
     logger.info("Census demographics loaded successfully")
-    return demographics_df
+    return demographics_df, data_source
 
 
 def _fetch_census_acs_data(zip_codes: list) -> pd.DataFrame:
@@ -386,9 +405,11 @@ def _fetch_census_acs_data(zip_codes: list) -> pd.DataFrame:
     # If no data was fetched from API (all batches failed), fall back to placeholder
     if not all_results:
         logger.warning(
-            "All Census API batches failed. Falling back to placeholder demographics."
+            f"All Census API batches failed. Falling back to placeholder demographics for {len(zip_codes)} ZIP codes."
         )
-        return _create_placeholder_demographics(zip_codes)
+        placeholder_df = _create_placeholder_demographics(zip_codes)
+        placeholder_df["data_source"] = "placeholder"
+        return placeholder_df
 
     # Build DataFrame with all variables
     records = []
@@ -406,6 +427,9 @@ def _fetch_census_acs_data(zip_codes: list) -> pd.DataFrame:
 
     # Compute derived columns
     df = _compute_derived_demographics(df)
+
+    # Add data source tracking
+    df["data_source"] = "census_api"
 
     logger.info(f"Successfully fetched Census data for {len(df)} ZIP codes")
     return df
@@ -724,7 +748,8 @@ def run_full_pipeline():
     # Load in order: boundaries first (needed for geocoding), then points, then tabular
     tx_zcta = load_zcta_boundaries(engine)
     load_crash_data(engine, tx_zcta)
-    load_census_demographics(engine, tx_zcta)
+    demographics_df, data_source = load_census_demographics(engine, tx_zcta)
+    logger.info(f"Demographics data source: {data_source}")
     load_competitors(engine, tx_zcta)
     load_roads(engine)
 

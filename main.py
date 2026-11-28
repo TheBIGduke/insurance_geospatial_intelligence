@@ -336,6 +336,84 @@ async def get_metrics_summary():
         }
 
 
+@app.get("/api/data-quality", summary="Get data quality status")
+async def get_data_quality():
+    """Check if real or mock demographic data is being used"""
+    try:
+        from settings import DATABASE_URL, ENGINE_OPTIONS
+        from sqlalchemy import create_engine, text
+
+        engine = create_engine(DATABASE_URL, **ENGINE_OPTIONS)
+        with engine.connect() as conn:
+            # Check census_demographics data source
+            result = conn.execute(
+                text(
+                    """
+                SELECT
+                    data_source,
+                    COUNT(*) as count
+                FROM census_demographics
+                GROUP BY data_source
+            """
+                )
+            )
+            demographics_sources = {row[0]: row[1] for row in result}
+
+            # Check data_quality table for latest record
+            result = conn.execute(
+                text(
+                    """
+                SELECT table_name, data_source, record_count, created_at, notes
+                FROM data_quality
+                WHERE table_name = 'census_demographics'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """
+                )
+            )
+            quality_row = result.fetchone()
+
+            is_mock = demographics_sources.get("placeholder", 0) > 0
+            primary_source = (
+                max(demographics_sources, key=demographics_sources.get)
+                if demographics_sources
+                else "unknown"
+            )
+
+            return {
+                "is_mock_data": is_mock,
+                "primary_data_source": primary_source,
+                "demographics_breakdown": demographics_sources,
+                "quality_record": (
+                    {
+                        "table_name": quality_row[0] if quality_row else None,
+                        "data_source": quality_row[1] if quality_row else None,
+                        "record_count": quality_row[2] if quality_row else None,
+                        "created_at": (
+                            quality_row[3].isoformat()
+                            if quality_row and quality_row[3]
+                            else None
+                        ),
+                        "notes": quality_row[4] if quality_row else None,
+                    }
+                    if quality_row
+                    else None
+                ),
+                "message": (
+                    "Using mock demographic data - Census API unavailable. Configure CENSUS_API_KEY for real data."
+                    if is_mock
+                    else "Using real Census ACS data"
+                ),
+            }
+    except Exception as e:
+        logger.error(f"Failed to get data quality: {e}")
+        return {
+            "error": str(e),
+            "is_mock_data": True,
+            "message": "Unable to determine data source",
+        }
+
+
 # --- Mount static files (must be last) ---
 frontend_path: str = os.path.abspath(
     os.path.join(os.path.dirname(__file__), static_folder)
