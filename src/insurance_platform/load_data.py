@@ -43,8 +43,10 @@ from insurance_platform.geocode_utils import create_postal_centroid_lookup
 logger = get_logger(__name__)
 
 # Census API batch size (max 50 variables per request)
+# Reduced to 45 to leave headroom for NAME + required fields
 CENSUS_BATCH_SIZE = 45
-# ZIP code batch size (keep URL length reasonable, ~100-200 ZIPs per request)
+# ZIP code batch size (keep URL length reasonable, ~100 ZIPs per request)
+# Prevents "520 Server Error" from URL too long
 CENSUS_ZIP_BATCH_SIZE = 100
 # Rate limiting: 500 requests/second default, be conservative
 CENSUS_RATE_LIMIT_DELAY = 0.01  # seconds between requests
@@ -202,8 +204,16 @@ def load_census_demographics(
 ) -> tuple[pd.DataFrame, str]:
     """
     Load Census demographics data from ACS API.
-    Falls back to placeholder if no API key configured.
+    Falls back to placeholder if no API key configured or all API batches fail.
     Returns: (demographics_df, data_source) where data_source is "census_api" or "placeholder"
+
+    Census API requests are batched to avoid URL length limits:
+    - Variables: ~45 per request (Census max is 50)
+    - ZIP codes: 100 per request (prevents 520 Server Error)
+    - Rate limited to 0.01s between requests (well under 500 req/s limit)
+
+    Data source tracking: Each record gets a `data_source` column ("census_api" or "placeholder")
+    stored in the census_demographics table and tracked in the data_quality table.
     """
     # Get list of ZIP codes from ZCTA data
     if tx_zcta is not None:
@@ -316,8 +326,16 @@ def load_census_demographics(
 def _fetch_census_acs_data(zip_codes: list) -> pd.DataFrame:
     """
     Fetch real Census ACS data for the given ZIP codes.
-    Batches requests to stay within API limits (max 50 variables per request,
-    and ~100 ZIP codes per request to avoid URL length limits).
+    Batches requests to stay within API limits:
+    - Max 50 variables per request (we use 45 for headroom)
+    - 100 ZIP codes per request to avoid URL length limits (520 Server Error)
+    - Rate limited to 0.01s between requests (well under 500 req/s default)
+
+    For 3,048 ZIP codes with ~45 variables: ~68 variable batches × 31 ZIP batches
+    = ~2,108 requests total. Pipeline continues on individual batch failures.
+
+    Returns DataFrame with data_source="census_api" on success,
+    or falls back to placeholder with data_source="placeholder" if all batches fail.
     """
     if not CENSUS_API_KEY:
         return _create_placeholder_demographics(zip_codes)
@@ -512,7 +530,15 @@ def _compute_derived_demographics(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _create_placeholder_demographics(zip_codes: list) -> pd.DataFrame:
-    """Create placeholder demographic data for ZIP codes (fallback only)."""
+    """Create placeholder demographic data for ZIP codes (fallback only).
+
+    Used when:
+    - No Census API key is configured in config.yaml
+    - All Census API batch requests fail (network error, rate limit, etc.)
+
+    Returns deterministic mock data (seed=42) so results are reproducible.
+    The data_source column is set to "placeholder" by the caller.
+    """
     import numpy as np
 
     np.random.seed(42)
@@ -737,7 +763,13 @@ def load_roads(engine) -> gpd.GeoDataFrame:
 
 
 def run_full_pipeline():
-    """Execute the complete data loading pipeline."""
+    """Execute the complete data loading pipeline.
+
+    Data source tracking:
+    - Census demographics include a `data_source` column ("census_api" or "placeholder")
+    - The `data_quality` table is auto-populated via INSERT in 01_create_schema.sql
+    - Check /api/data-quality endpoint or frontend indicator to see active data source
+    """
     logger.info("=" * 60)
     logger.info("Starting Insurance Geospatial Data Pipeline")
     logger.info("=" * 60)

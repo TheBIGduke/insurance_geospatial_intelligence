@@ -19,6 +19,8 @@ database:
   pool_recycle: 3600
 
 # Census API (optional - for ZIP-level demographics download)
+# Get free key at: https://api.census.gov/data/key_signup.html
+# Without a key, pipeline uses deterministic mock demographics (seed=42)
 census:
   api_key: ""
   base_url: "https://api.census.gov/data/2023/acs/acs5"

@@ -195,10 +195,17 @@ post_instructions() {
     info "     sudo -u postgres createdb insurance_geospatial_intelligence"
     info "     sudo -u postgres psql -d insurance_geospatial_intelligence -c \"CREATE EXTENSION postgis;\""
     info "  2. Update database credentials in ~/.insurance_platform/config/config.yaml"
-    info "  3. Activate virtual environment: source .venv/bin/activate"
-    info "  4. Run the pipeline: python run_pipeline.py"
-    info "  5. Start the visualization server: python main.py"
-    info "  6. Open https://localhost:8080 in your browser"
+    info "  3. (Optional) Add Census API key to config.yaml for real demographic data:"
+    info "     census:"
+    info "       api_key: \"your_key_here\""
+    info "  4. Activate virtual environment: source .venv/bin/activate"
+    info "  5. Run the pipeline: python run_pipeline.py"
+    info "  6. Start the visualization server: python main.py"
+    info "  7. Open https://localhost:8080 in your browser"
+    info ""
+    info "Data Quality: If no Census API key is configured, the pipeline uses mock"
+    info "demographic data. Check the frontend indicator or /api/data-quality endpoint"
+    info "to see which data source is active."
 }
 
 

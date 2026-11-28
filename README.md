@@ -25,6 +25,9 @@ A location intelligence platform for the insurance market. Ingests public demogr
 
 - ***Modular Architecture*** – Organized pipeline (`src/insurance_platform/`), API (`main.py`), and static exports (`exports/`)
 - ***Full Data Pipeline*** – Census ACS demographics, crash/traffic data, agent licenses, ZCTA boundaries
+- ***Census API Batching*** – Automatic request batching (100 ZIP codes × variable batches) to avoid URL length limits
+- ***Data Quality Tracking*** – `data_source` column tracks `"census_api"` vs `"placeholder"` per record; `/api/data-quality` endpoint for real-time status
+- ***Mock Data Detection*** – Frontend indicator shows when mock demographic data is in use
 - ***Spatial Analytics*** – PostGIS-powered spatial joins, 3,048 ZIP codes analyzed
 - ***Derived Metrics*** – Vulnerability Index, Visibility Multiplier, Risk Alignment, market segment scores (0–100%)
 - ***Market Segmentation*** – 8 segments: Prime/Strong Standard, Prime/Strong Non-Standard, Spanish Standard/Non-Standard, Market Gap, Moderate
@@ -281,6 +284,7 @@ python main.py
 | `GET` | `/health` | Health check |
 | `GET` | `/api/status` | Get pipeline execution status |
 | `GET` | `/api/metrics/summary` | Summary statistics from opportunity metrics |
+| `GET` | `/api/data-quality` | Check if real or mock demographic data is in use |
 | `POST` | `/api/pipeline/run` | Run full pipeline (background) |
 | `POST` | `/api/pipeline/load` | Run data loading only |
 | `POST` | `/api/pipeline/sql` | Run SQL pipeline only |
@@ -315,22 +319,41 @@ database:
   password: "your_password"
   pool_size: 5
   max_overflow: 10
+  pool_timeout: 30
+  pool_recycle: 3600
 
 census:
-  api_key: ""  # Optional: for live ACS API calls
+  api_key: ""  # Optional: for live ACS API calls (get at https://api.census.gov/data/key_signup.html)
+  base_url: "https://api.census.gov/data/2023/acs/acs5"
 
 data:
   zcta_shapefile: "data/tl_2026_us_zcta520.zip"
   crash_csv: "data/my_list.csv"
-  agents_csv: "data/Insurance_agents,_adjusters,_and_people_approved_to_manage_insurance-related_products_or_claims_20261118.csv"
-  census_csv: "data/ACSST1Y2025.S2504-Data.csv"
+  agents_csv: "data/agents_tdi_2026.csv"
+  census_csv: "data/ACSST1Y2025.S2504-2026-11-18T174206.csv"
   roads_shapefile: "data/txdot_roads.shp"
 
 export:
   dir: "exports"
   geojson_filename: "zip_opportunity_metrics.geojson"
   csv_filename: "zip_opportunity_metrics.csv"
+  kepler_config_filename: "kepler_config.json"
 ```
+
+### Census API Key Setup
+
+To use real demographic data instead of mock data:
+
+1. Get a free Census API key at: https://api.census.gov/data/key_signup.html
+2. Add it to `~/.insurance_platform/config/config.yaml`:
+   ```yaml
+   census:
+     api_key: "your_key_here"
+     base_url: "https://api.census.gov/data/2023/acs/acs5"
+   ```
+3. Re-run the pipeline: `python run_pipeline.py --only-load`
+
+Without an API key, the pipeline uses deterministic mock demographics (seed=42) so results are reproducible for development/testing.
 
 ---
 
@@ -341,8 +364,19 @@ export:
 | ZIP Boundaries | Census 2026 ZCTA | 3,048 | ZCTA520 shapefile |
 | Crashes | State DOT Crash Data | 37,876 | Crash points with severity |
 | Agent Licenses | State Insurance Dept | 260,000+ | Active agents/adjusters (Appointment type) |
-| Demographics | Census ACS 2023 | ZIP-level | Income, housing, language, vehicles |
+| Demographics | Census ACS 2023 | ZIP-level | Income, housing, language, vehicles (API: batched requests, 100 ZIPs/request) |
 | Traffic (AADT) | State DOT Roadways | 576,000+ segments | Annual Average Daily Traffic |
+
+### Census API Details
+
+The pipeline fetches ZIP-level demographics from the Census ACS API (2023 5-year estimates). To avoid URL length limits (520 Server Error), requests are batched:
+- **Variable batching**: ~45 variables per request (Census API max is 50)
+- **ZIP code batching**: 100 ZIP codes per request (`CENSUS_ZIP_BATCH_SIZE`)
+- **Rate limiting**: 0.01s delay between requests (well under 500 req/s limit)
+
+For 3,048 ZIP codes with 45 variables: ~68 variable batches × 31 ZIP batches = ~2,108 requests total.
+
+**Data source tracking**: Each demographic record includes a `data_source` column (`"census_api"` or `"placeholder"`). The `/api/data-quality` endpoint and frontend indicator show which source is active.
 
 ---
 
@@ -400,6 +434,15 @@ export:
 
 **Problem:** `uv: command not found`
 **Solution:** Install uv: `curl -LsSf https://astral.sh/uv/install.sh | sh` then restart shell.
+
+**Problem:** Census API returns 520 Server Error or 400 Bad Request
+**Solution:** The pipeline now batches requests (100 ZIP codes × ~45 variables per request) to avoid URL length limits. If errors persist, check API key validity and network connectivity. See `/api/data-quality` endpoint to verify data source.
+
+**Problem:** Frontend shows "Using mock demographic data" indicator
+**Solution:** This means no Census API key is configured or all API requests failed. Add a valid API key to `config.yaml` and re-run `python run_pipeline.py --only-load`. The indicator can be dismissed with the × button.
+
+**Problem:** `COALESCE types text and integer cannot be matched` during SQL pipeline
+**Solution:** All numeric columns in `census_demographics` are now explicitly converted with `pd.to_numeric()` before loading. Re-run the load phase.
 
 ---
 ## Credits

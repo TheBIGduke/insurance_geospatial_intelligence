@@ -22,6 +22,20 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology;
 -- ============================================================================
 -- Columns: zip_code (PK), median_home_value, median_household_income,
 --          vehicles_per_household, renter_pct, spanish_speaking_pct, etc.
+--          data_source: "census_api" (real data) or "placeholder" (mock data)
+--
+-- Census API Batching Strategy (to avoid 520 Server Error / URL too long):
+--   - Variables: ~45 per request (Census max is 50, leave headroom)
+--   - ZIP codes: 100 per request (CENSUS_ZIP_BATCH_SIZE)
+--   - Rate limit: 0.01s delay between requests (well under 500 req/s)
+--   - For 3,048 ZIPs: ~68 var batches × 31 ZIP batches = ~2,108 requests
+--   - Pipeline continues on individual batch failures
+--
+-- Data Quality Tracking:
+--   - Each record has data_source column ("census_api" or "placeholder")
+--   - Index on data_source for fast filtering
+--   - data_quality table auto-populated on pipeline run
+--   - Check /api/data-quality endpoint or frontend indicator
 
 -- ============================================================================
 -- TABLE: competitors (loaded from insurance agents CSV)
